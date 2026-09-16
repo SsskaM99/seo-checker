@@ -1,0 +1,4 @@
+node_modules/
+leads.json
+analyses.json
+.env

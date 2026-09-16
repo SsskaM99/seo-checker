@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Näkyvyysanalyysi — SEO Sales</title>
+<meta name="description" content="Selvitä sivustosi näkyvyyden tila ilmaiseksi. Saat selkeän raportin ja konkreettiset kehitysehdotukset.">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --navy:#17161C;--ink-2:#26252D;--text:#34333C;--muted:#807F88;
+  --text-on-dark:#C6C2D1;--bg:#FFFFFF;--paper:#F5F5F7;
+  --line:#E8E8EC;--line-2:#D8D8DE;
+  --violet:#6D4AFF;--violet-dark:#5232E0;--violet-bright:#A08CFF;
+  --turq:#12B5AA;--turq-dark:#0C847C;--turq-bright:#25D9C6;
+  --charcoal:#17171D;--charcoal-2:#1B1C23;
+  --pass:#27AE60;--warn:#E67E22;--fail:#C0392B;
+  --display:"Space Grotesk","Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --sans:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r-sm:8px;--r-md:14px;--r-lg:18px;
+}
+
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);color:var(--text);background:var(--bg);font-size:17px;line-height:1.72;-webkit-font-smoothing:antialiased;font-weight:400;text-rendering:optimizeLegibility}
+h1,h2,h3,h4{font-family:var(--display);color:var(--navy);font-weight:600;line-height:1.08;letter-spacing:-.025em}
+h1 em,h2 em{font-style:normal;font-weight:600;color:var(--violet-dark)}
+a{color:var(--navy);text-decoration:none}
+::selection{background:rgba(108,77,246,.18)}
+.wrap{max-width:1200px;margin:0 auto;padding:0 48px}
+
+/* Header */
+header{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.92);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:inline-flex;align-items:center}
+.logo img{height:22px;width:auto}
+.nav-right{display:flex;align-items:center;gap:16px}
+.nav-link{font-family:var(--sans);font-size:14px;font-weight:500;color:var(--text);transition:color .2s}
+.nav-link:hover{color:var(--navy)}
+.nav-cta{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;border:1px solid var(--line-2);border-radius:999px;padding:9px 18px;color:var(--navy);transition:border-color .25s,background .25s,color .25s}
+.nav-cta:hover{border-color:var(--navy);background:var(--navy);color:#fff}
+
+/* Hero */
+.hero{background:var(--charcoal);padding:72px 0 56px;text-align:center}
+.hero h1{color:#fff;font-size:clamp(28px,5vw,46px);margin-bottom:14px;line-height:1.08}
+.hero h1 em{color:var(--violet-bright)}
+.hero p{color:var(--text-on-dark);font-size:17px;max-width:580px;margin:0 auto;line-height:1.65}
+
+/* Input */
+.input-section{padding:44px 0 28px}
+.input-box{display:flex;gap:12px;max-width:580px;margin:0 auto}
+.input-box input[type="text"]{
+  flex:1;font-family:var(--sans);font-size:16px;padding:14px 18px;
+  border:1.5px solid var(--line-2);border-radius:var(--r-sm);
+  background:var(--bg);color:var(--navy);outline:none;transition:border-color .2s;
+}
+.input-box input::placeholder{color:var(--muted)}
+.input-box input:focus{border-color:var(--violet)}
+.btn-primary{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:500;color:#fff;background:var(--navy);border:none;border-radius:var(--r-sm);
+  padding:14px 28px;cursor:pointer;white-space:nowrap;
+  transition:background .2s,transform .2s,box-shadow .3s;
+}
+.btn-primary:hover{background:var(--violet-dark);transform:translateY(-1px);box-shadow:0 8px 20px -10px rgba(23,22,28,.5)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* Loading */
+.loading{text-align:center;padding:48px 0;display:none}
+.loading.active{display:block}
+.spinner{width:36px;height:36px;border:3px solid var(--line);border-top-color:var(--violet);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{color:var(--muted);font-size:15px}
+.error-msg{text-align:center;padding:24px;color:var(--fail);font-size:15px;display:none}
+.error-msg.active{display:block}
+
+/* Results preview */
+.results-preview{display:none;padding:0 0 8px}
+.results-preview.active{display:block}
+.checked-url{text-align:center;padding:28px 0 0;font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.02em}
+.checked-url strong{color:var(--navy);font-weight:500}
+
+/* Score ring */
+.score-section{text-align:center;padding:28px 0 16px}
+.score-ring{position:relative;width:160px;height:160px;margin:0 auto 16px}
+.score-ring svg{transform:rotate(-90deg)}
+.score-ring .bg{stroke:var(--line)}
+.score-ring .fill{transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)}
+.score-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-num .big{font-family:var(--display);font-size:48px;font-weight:700;color:var(--navy);line-height:1}
+.score-num .sub{font-size:13px;color:var(--muted);margin-top:2px}
+.score-summary{font-size:15px;color:var(--muted);max-width:520px;margin:0 auto;line-height:1.65}
+.score-badge{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:999px;margin-top:12px}
+.score-badge.good{background:#E8F9F0;color:var(--pass)}
+.score-badge.ok{background:#FFF4E5;color:var(--warn)}
+.score-badge.bad{background:#FDECEC;color:var(--fail)}
+
+/* Category cards */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:24px 0 32px;max-width:960px;margin:0 auto}
+.cat-card{position:relative;background:var(--paper);border-radius:var(--r-md);padding:24px 20px;text-align:center}
+.cat-card .cat-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.cat-card .cat-score{font-family:var(--display);font-size:36px;font-weight:700;line-height:1;margin-bottom:6px}
+.cat-bar{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.cat-bar span{display:block;height:100%;border-radius:2px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.cat-card .cat-desc{font-size:12px;color:var(--muted);margin-top:8px}
+.cat-card .cat-checks-summary{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.cat-card .cat-checks-summary .pill{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-family:var(--mono);font-size:11px;font-weight:600;color:#fff;line-height:1;padding:0}
+.cat-card .cat-checks-summary .pill.p{background:var(--pass)}
+.cat-card .cat-checks-summary .pill.w{background:var(--warn)}
+.cat-card .cat-checks-summary .pill.f{background:var(--fail)}
+.cat-card .cat-highlight{font-size:12px;color:var(--text);margin-top:6px;line-height:1.5}
+
+/* Info button — hover tooltip (card) */
+.info-btn{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--bg);color:var(--muted);font-family:var(--sans);font-size:12px;font-weight:600;line-height:17px;text-align:center;cursor:help;transition:border-color .2s,color .2s}
+.info-btn:hover{border-color:var(--violet);color:var(--violet)}
+.info-tooltip{display:none;position:absolute;top:36px;right:0;left:0;background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;font-size:13px;color:var(--text);line-height:1.55;text-align:left;box-shadow:0 8px 24px -8px rgba(23,22,28,.12);z-index:10}
+.info-btn:hover + .info-tooltip,
+.info-tooltip:hover{display:block}
+
+/* Low-score CTA inside card */
+.cat-card-cta{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--violet);margin-top:10px;padding:5px 12px;border:1px solid var(--violet);border-radius:999px;transition:background .2s,color .2s;cursor:pointer;text-decoration:none}
+.cat-card-cta:hover{background:var(--violet);color:#fff}
+
+/* Info button — hover tooltip (section) */
+.info-btn-section{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--bg);color:var(--muted);font-family:var(--sans);font-size:12px;font-weight:600;line-height:19px;text-align:center;cursor:help;transition:border-color .2s,color .2s;flex-shrink:0;position:relative}
+.info-btn-section:hover{border-color:var(--violet);color:var(--violet)}
+.section-tooltip{display:none;padding:12px 16px;background:var(--paper);border-radius:var(--r-sm);font-size:14px;color:var(--text);line-height:1.6;margin-bottom:4px}
+.info-wrap{position:relative;display:inline-flex;align-items:center}
+.info-wrap:hover .section-tooltip{display:block;position:absolute;top:100%;right:0;width:280px;z-index:10;margin-top:6px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+
+/* Stats chips */
+.stats-row{display:flex;justify-content:center;gap:16px;padding:0 0 16px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 14px;border-radius:999px}
+.chip.fail{background:#FDECEC;color:var(--fail)}
+.chip.warn{background:#FFF4E5;color:var(--warn)}
+.chip.pass{background:#E8F9F0;color:var(--pass)}
+
+/* Blurred preview + email gate */
+.gate-wrapper{position:relative;overflow:hidden}
+.blurred-preview{filter:blur(6px);opacity:.55;pointer-events:none;padding:0 0 32px;user-select:none;max-height:380px;overflow:hidden}
+.blurred-preview::after{content:"";position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(transparent,var(--bg))}
+.gate-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5}
+.gate-card{background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r-lg);padding:40px 36px;max-width:460px;width:90%;text-align:center;box-shadow:0 24px 60px -20px rgba(23,22,28,.12)}
+.gate-card h3{font-size:22px;margin-bottom:6px}
+.gate-card h3 em{color:var(--turq-dark);font-style:normal}
+.gate-card .gate-sub{font-size:15px;color:var(--muted);margin-bottom:20px;line-height:1.55}
+.gate-card input[type="email"]{
+  width:100%;font-family:var(--sans);font-size:15px;padding:13px 16px;
+  border:1.5px solid var(--line-2);border-radius:var(--r-sm);
+  background:var(--bg);color:var(--navy);outline:none;margin-bottom:10px;
+  transition:border-color .2s;
+}
+.gate-card input[type="email"]::placeholder{color:var(--muted)}
+.gate-card input[type="email"]:focus{border-color:var(--violet)}
+.gate-card input[type="tel"]{
+  width:100%;font-family:var(--sans);font-size:15px;padding:13px 16px;
+  border:1.5px solid var(--line-2);border-radius:var(--r-sm);
+  background:var(--bg);color:var(--navy);outline:none;margin-bottom:10px;
+  transition:border-color .2s;
+}
+.gate-card input[type="tel"]::placeholder{color:var(--muted)}
+.gate-card input[type="tel"]:focus{border-color:var(--violet)}
+.gate-card .checkbox-row{display:flex;align-items:flex-start;gap:8px;text-align:left;margin-bottom:16px;cursor:pointer}
+.gate-card .checkbox-row input{width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--turq);cursor:pointer}
+.gate-card .checkbox-row label{font-size:13px;color:var(--muted);line-height:1.5;cursor:pointer}
+.btn-gate{
+  width:100%;font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:500;color:#fff;background:var(--navy);border:none;border-radius:var(--r-sm);
+  padding:15px 28px;cursor:pointer;transition:background .2s,transform .2s;
+}
+.btn-gate:hover{background:var(--violet-dark);transform:translateY(-1px)}
+.btn-gate:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.gate-note{font-size:12px;color:var(--muted);margin-top:10px}
+
+/* Full results */
+.results-full{display:none;padding:0 0 40px}
+.results-full.active{display:block}
+.cat-section{margin-bottom:36px}
+.cat-section-header{display:flex;align-items:center;gap:12px;padding:16px 0 12px;border-bottom:1.5px solid var(--line)}
+.cat-section-header h3{font-size:17px;flex:1}
+.cat-section-header .cat-section-score{font-family:var(--display);font-size:18px;font-weight:700}
+.checks-list{list-style:none}
+.check-item{padding:16px 0;border-bottom:1px solid var(--line)}
+.check-header{display:flex;align-items:flex-start;gap:10px}
+.check-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:7px}
+.check-dot.pass{background:var(--pass)}
+.check-dot.warn{background:var(--warn)}
+.check-dot.fail{background:var(--fail)}
+.check-label{font-family:var(--display);font-weight:600;font-size:15px;color:var(--navy)}
+.check-msg{font-size:15px;color:var(--text);margin-top:3px;line-height:1.6}
+.check-tip{font-size:14px;color:var(--muted);margin-top:5px;padding-left:18px;line-height:1.6}
+
+/* CTA */
+.cta-band{background:var(--charcoal);padding:64px 0;text-align:center;display:none}
+.cta-band.active{display:block}
+.cta-band h2{color:#fff;font-size:clamp(22px,4vw,32px);margin-bottom:8px}
+.cta-band h2 em{font-style:normal;color:var(--turq-bright)}
+.cta-band .cta-body{color:var(--text-on-dark);font-size:16px;max-width:520px;margin:0 auto 12px;line-height:1.65}
+.cta-summary{margin-bottom:28px}
+.cta-summary .good{color:var(--turq-bright)}
+.cta-summary .needs{color:var(--warn)}
+.btn-cta{
+  display:inline-block;font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;
+  text-transform:uppercase;font-weight:500;color:var(--navy);background:#fff;
+  border:none;border-radius:var(--r-sm);padding:16px 36px;cursor:pointer;
+  transition:background .2s,transform .2s,box-shadow .3s;text-decoration:none;
+}
+.btn-cta:hover{transform:translateY(-1px);box-shadow:0 10px 22px -14px rgba(23,22,28,.7)}
+
+/* Footer */
+footer{padding:28px 0;text-align:center;border-top:1px solid var(--line)}
+footer p{font-size:13px;color:var(--muted)}
+footer a{color:var(--turq-dark)}
+
+/* Responsive */
+@media(max-width:640px){
+  .wrap{padding:0 20px}
+  .input-box{flex-direction:column}
+  .input-box input[type="text"],.btn-primary{width:100%}
+  .hero{padding:52px 0 44px}
+  header .wrap{height:56px}
+  .logo img{height:18px}
+  .nav-right{gap:10px}
+  .nav-link{display:none}
+  .cat-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .gate-card{padding:28px 20px}
+  .info-tooltip{font-size:12px;padding:10px 12px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a href="https://seosales.fi" class="logo" target="_blank" rel="noopener">
+      <img src="/seo-sales-logo.svg" alt="SEO Sales" width="140" height="22">
+    </a>
+    <div class="nav-right">
+      <a href="https://seosales.fi" class="nav-link" target="_blank" rel="noopener">seosales.fi</a>
+      <a href="https://seosales.fi/yhteys.html" class="nav-cta" target="_blank" rel="noopener">Varaa tapaaminen</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>Selvitä sivustosi <em>näkyvyyden tila</em></h1>
+    <p>Syötä verkkosivusi osoite — analysoimme hakukonenäkyvyyden, tekniset perusteet, sisällön laadun ja tekoälynäkyvyyden.</p>
+  </div>
+</section>
+
+<section class="input-section">
+  <div class="wrap">
+    <form class="input-box" id="check-form">
+      <input type="text" id="url-input" placeholder="esim. yritys.fi" autocomplete="url" required>
+      <button type="submit" class="btn-primary" id="check-btn">Analysoi</button>
+    </form>
+  </div>
+</section>
+
+<div class="loading" id="loading"><div class="spinner"></div><p>Analysoidaan sivustoa...</p></div>
+<div class="error-msg" id="error"></div>
+
+<section class="results-preview" id="results-preview">
+  <div class="wrap">
+    <p class="checked-url" id="checked-url"></p>
+    <div class="score-section">
+      <div class="score-ring">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle class="bg" cx="80" cy="80" r="68" fill="none" stroke-width="8"/>
+          <circle class="fill" id="score-circle" cx="80" cy="80" r="68" fill="none" stroke-width="8" stroke-linecap="round"
+            stroke-dasharray="427" stroke-dashoffset="427"/>
+        </svg>
+        <div class="score-num"><span class="big" id="score-value">0</span><span class="sub">/100</span></div>
+      </div>
+      <div id="score-badge-wrap"></div>
+      <p class="score-summary" id="score-summary"></p>
+    </div>
+    <div class="cat-grid" id="cat-grid"></div>
+    <div class="stats-row" id="stats-row"></div>
+  </div>
+</section>
+
+<div class="gate-wrapper" id="gate-wrapper" style="display:none">
+  <div class="blurred-preview" id="blurred-preview"></div>
+  <div class="gate-overlay">
+    <div class="gate-card">
+      <h3>Näe <em>täydet tulokset</em></h3>
+      <p class="gate-sub">Tarkka raportti, kehitysehdotukset ja konkreettiset korjausohjeet — suoraan sähköpostiisi.</p>
+      <form id="email-form">
+        <input type="email" id="email-input" placeholder="sähköpostiosoitteesi" required>
+        <input type="tel" id="phone-input" placeholder="puhelinnumero (vapaaehtoinen)">
+        <div class="checkbox-row">
+          <input type="checkbox" id="newsletter-check" checked>
+          <label for="newsletter-check">Haluan saada myös vinkkejä näkyvyyden parantamiseen</label>
+        </div>
+        <button type="submit" class="btn-gate" id="unlock-btn">Avaa raportti</button>
+      </form>
+      <p class="gate-note">Ei spämmiä. Voit peruuttaa milloin tahansa.</p>
+    </div>
+  </div>
+</div>
+
+<section class="results-full" id="results-full">
+  <div class="wrap" id="full-results-content"></div>
+</section>
+
+<section class="cta-band" id="cta-band">
+  <div class="wrap">
+    <h2>Käydään yhdessä läpi, miten <em>näkyvyys muuttuu kasvuksi</em></h2>
+    <div class="cta-body">
+      <div class="cta-summary" id="cta-summary"></div>
+      <p>Tämä analyysi kattaa perusteet. Tapaamisessa pääsemme syvemmälle — käymme läpi juuri teidän yritykselle tärkeimmät kehityskohteet ja rakennamme suunnitelman.</p>
+    </div>
+    <a href="https://seosales.fi/yhteys.html" class="btn-cta" target="_blank" rel="noopener">Varaa maksuton tapaaminen</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap"><p><a href="https://seosales.fi" target="_blank" rel="noopener">SEO Sales</a> — näkyvyydestä kasvuun</p></div>
+</footer>
+
+<script>
+const catInfo = {
+  seo: 'Hakukonenäkyvyyden perusteet: title-tagi, meta description, H1-otsikko, canonical-URL ja sisäiset linkit. Nämä vaikuttavat suoraan siihen, miten Google ymmärtää ja sijoittaa sivustosi.',
+  technical: 'Tekniset perusvaatimukset: HTTPS-suojaus, mobiilioptimointi, kieliasetus, indeksointilupa ja merkistökoodaus. Puutteet voivat estää sivuston näkymisen hakutuloksissa.',
+  content: 'Sisällön laatu ja rakenne: tekstin määrä, otsikkohierarkia ja kuvien alt-tekstit. Laadukas, hyvin jäsennelty sisältö parantaa sekä käyttäjäkokemusta että hakukonenäkyvyyttä.',
+  social: 'Jakamisnäkyvyys: Open Graph -tagit, Twitter Card -tagit ja favicon. Nämä määrittävät miltä sivustosi näyttää kun joku jakaa sen somessa tai viestipalvelussa.',
+  ai: 'Tekoälynäkyvyys: rakenteellinen data (JSON-LD), kysymysmuotoiset otsikot, FAQ-schema ja tekoälybottien pääsy. Nämä vaikuttavat siihen, näkyykö sivustosi ChatGPT:n, Geminin ja muiden tekoälyhakujen vastauksissa.',
+  keywords: 'Tuoko sivustosi oikeita asiakkaita vai satunnaisia kävijöitä? Analysoimme, onko sisältö kohdistettu oikeille hakijoille, houkutteleeko se vahingossa väärää yleisöä ja ohjaako se kävijöitä yhteydenottoon.'
+};
+
+const catCtaTexts = {
+  seo: 'Miksi näkyvyys jää alhaiseksi?',
+  technical: 'Tekniset puutteet hidastavat',
+  content: 'Sisältöä kannattaa vahvistaa',
+  social: 'Jakamisnäkyvyys puuttuu',
+  ai: 'Tekoälyhaut eivät löydä sivustoa',
+  keywords: 'Sivusto ei tavoita oikeita asiakkaita'
+};
+
+let currentData = null;
+
+function $(id) { return document.getElementById(id); }
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function show(...ids) { ids.forEach(id => $(id).classList.add('active')); }
+function hide(...ids) { ids.forEach(id => $(id).classList.remove('active')); }
+
+function scoreColor(score) {
+  if (score >= 80) return 'var(--pass)';
+  if (score >= 50) return 'var(--warn)';
+  return 'var(--fail)';
+}
+
+$('check-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const url = $('url-input').value.trim();
+  if (!url) return;
+
+  show('loading');
+  hide('error', 'results-preview', 'results-full');
+  $('gate-wrapper').style.display = 'none';
+  $('cta-band').classList.remove('active');
+  $('check-btn').disabled = true;
+
+  try {
+    const res = await fetch('/api/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Tuntematon virhe');
+    currentData = data;
+    renderPreview(data);
+  } catch (err) {
+    $('error').textContent = err.message;
+    show('error');
+  } finally {
+    hide('loading');
+    $('check-btn').disabled = false;
+  }
+});
+
+$('email-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('email-input').value.trim();
+  const phone = $('phone-input').value.trim();
+  const newsletter = $('newsletter-check').checked;
+  if (!email) return;
+  $('unlock-btn').disabled = true;
+
+  try {
+    await fetch('/api/lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        phone,
+        newsletter,
+        url: currentData?.url,
+        score: currentData?.score,
+        categories: currentData?.categories,
+        summary: currentData?.summary,
+      }),
+    });
+  } catch { /* lead-tallennus epäonnistui — ei estä raportin näyttämistä */ }
+
+  $('gate-wrapper').style.display = 'none';
+  renderFullResults(currentData);
+  $('unlock-btn').disabled = false;
+});
+
+function renderPreview(data) {
+  $('checked-url').innerHTML = 'Tarkistettu: <strong>' + esc(data.url) + '</strong>';
+
+  const circ = 2 * Math.PI * 68;
+  const circle = $('score-circle');
+  const offset = circ - (data.score / 100) * circ;
+  const color = scoreColor(data.score);
+  circle.style.stroke = color;
+  circle.style.strokeDashoffset = String(circ);
+  requestAnimationFrame(() => { circle.style.strokeDashoffset = String(offset); });
+
+  let cur = 0;
+  const step = Math.max(1, Math.floor(data.score / 30));
+  const counter = setInterval(() => {
+    cur = Math.min(cur + step, data.score);
+    $('score-value').textContent = cur;
+    if (cur >= data.score) clearInterval(counter);
+  }, 25);
+
+  let badgeClass = 'bad', badgeText = 'Kehitettävää';
+  if (data.score >= 80) { badgeClass = 'good'; badgeText = 'Hyvä'; }
+  else if (data.score >= 60) { badgeClass = 'ok'; badgeText = 'Kohtalainen'; }
+  $('score-badge-wrap').innerHTML = '<span class="score-badge ' + badgeClass + '">' + badgeText + '</span>';
+  $('score-summary').textContent = data.summary;
+
+  const grid = $('cat-grid');
+  grid.innerHTML = '';
+  data.categories.forEach(c => {
+    const col = scoreColor(c.score);
+    const needsCta = c.score < 80;
+    const ctaText = catCtaTexts[c.id] || 'Selvitä lisää';
+
+    const passN = c.checks.filter(ch => ch.status === 'pass').length;
+    const warnN = c.checks.filter(ch => ch.status === 'warn').length;
+    const failN = c.checks.filter(ch => ch.status === 'fail').length;
+    const firstIssue = c.checks.find(ch => ch.status === 'fail') || c.checks.find(ch => ch.status === 'warn');
+
+    let cardHtml = '<div class="cat-card">' +
+      '<span class="info-btn" aria-label="Lisätietoja">?</span>' +
+      '<span class="info-tooltip">' + esc(catInfo[c.id] || c.description) + '</span>' +
+      '<div class="cat-label">' + esc(c.label) + '</div>' +
+      '<div class="cat-score" style="color:' + col + '">' + c.score + '</div>' +
+      '<div class="cat-bar"><span style="width:' + c.score + '%;background:' + col + '"></span></div>' +
+      '<div class="cat-desc">' + esc(c.description) + '</div>' +
+      '<div class="cat-checks-summary">';
+
+    if (passN) cardHtml += '<span class="pill p" title="' + passN + ' kunnossa">' + passN + '</span>';
+    if (warnN) cardHtml += '<span class="pill w" title="' + warnN + ' huomioitavaa">' + warnN + '</span>';
+    if (failN) cardHtml += '<span class="pill f" title="' + failN + ' korjattavaa">' + failN + '</span>';
+    cardHtml += '</div>';
+
+    if (firstIssue) {
+      cardHtml += '<div class="cat-highlight">' + esc(firstIssue.label) + ': ' + esc(firstIssue.message) + '</div>';
+    }
+
+    if (needsCta) {
+      cardHtml += '<a href="#gate-wrapper" class="cat-card-cta">' + esc(ctaText) + '</a>';
+    }
+
+    cardHtml += '</div>';
+    grid.innerHTML += cardHtml;
+  });
+
+  const sr = $('stats-row');
+  sr.innerHTML = '';
+  if (data.counts.fail) sr.innerHTML += '<span class="chip fail">' + data.counts.fail + ' ongelmaa</span>';
+  if (data.counts.warn) sr.innerHTML += '<span class="chip warn">' + data.counts.warn + ' huomioitavaa</span>';
+  if (data.counts.pass) sr.innerHTML += '<span class="chip pass">' + data.counts.pass + ' kunnossa</span>';
+
+  show('results-preview');
+  buildBlurredPreview(data);
+  $('gate-wrapper').style.display = '';
+  $('results-preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildBlurredPreview(data) {
+  const wrap = $('blurred-preview');
+  let html = '<div class="wrap">';
+  data.categories.forEach(c => {
+    html += '<div style="margin-bottom:24px"><h3 style="font-size:16px;padding:12px 0 8px;border-bottom:1.5px solid var(--line)">' + esc(c.label) + ' — ' + c.score + '/100</h3><ul style="list-style:none">';
+    c.checks.forEach(ch => {
+      html += '<li style="padding:12px 0;border-bottom:1px solid var(--line)"><strong>' + esc(ch.label) + '</strong><br>' + esc(ch.message) + '</li>';
+    });
+    html += '</ul></div>';
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+function renderFullResults(data) {
+  const wrap = $('full-results-content');
+  let html = '';
+
+  data.categories.forEach(c => {
+    const col = scoreColor(c.score);
+    html += '<div class="cat-section">' +
+      '<div class="cat-section-header">' +
+        '<h3>' + esc(c.label) + '</h3>' +
+        '<span class="info-wrap">' +
+          '<span class="info-btn-section" aria-label="Lisätietoja">?</span>' +
+          '<span class="section-tooltip" data-for="' + c.id + '">' + esc(catInfo[c.id] || c.description) + '</span>' +
+        '</span>' +
+        '<span class="cat-section-score" style="color:' + col + '">' + c.score + '/100</span>' +
+      '</div>' +
+      '<ul class="checks-list">';
+
+    const order = ['fail', 'warn', 'pass'];
+    const sorted = [...c.checks].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+    sorted.forEach(ch => {
+      html += '<li class="check-item">' +
+        '<div class="check-header">' +
+          '<span class="check-dot ' + ch.status + '"></span>' +
+          '<div>' +
+            '<div class="check-label">' + esc(ch.label) + '</div>' +
+            '<div class="check-msg">' + esc(ch.message) + '</div>' +
+          '</div>' +
+        '</div>' +
+        (ch.tip ? '<div class="check-tip">' + esc(ch.tip) + '</div>' : '') +
+      '</li>';
+    });
+    html += '</ul></div>';
+  });
+
+  wrap.innerHTML = html;
+  show('results-full');
+
+  const passCount = data.counts.pass;
+  const issueCount = data.counts.fail + data.counts.warn;
+  $('cta-summary').innerHTML = '<span class="good">' + passCount + ' asiaa kunnossa</span> · <span class="needs">' + issueCount + ' kehityskohdetta</span>';
+  $('cta-band').classList.add('active');
+  $('results-full').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+</script>
+</body>
+</html>

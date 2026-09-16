@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="50 -6 110 110">
+  <defs>
+    <linearGradient id="ssPointerGrad" x1="62.2" y1="92.9" x2="147.8" y2="5.1" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="32%" stop-color="#6D4AFF"/>
+      <stop offset="47%" stop-color="#6D4AFF"/>
+      <stop offset="80%" stop-color="#12B5AA"/>
+      <stop offset="100%" stop-color="#12B5AA"/>
+    </linearGradient>
+  </defs>
+  <rect x="50" y="-6" width="110" height="110" rx="18" fill="#17161C"/>
+  <path d="M147.8,5.1 Q85.1,29.6 62.2,92.9 Q124.9,68.4 147.8,5.1 Z" fill="url(#ssPointerGrad)"/>
+</svg>

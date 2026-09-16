@@ -1,0 +1,14 @@
+{
+  "name": "seo-checker",
+  "version": "1.0.0",
+  "description": "SEO Sales — yksinkertainen SEO-tarkistustyökalu",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cheerio": "^1.0.0-rc.12"
+  }
+}
