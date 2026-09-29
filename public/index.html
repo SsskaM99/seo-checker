@@ -92,8 +92,19 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 /* Results preview */
 .results-preview{display:none;padding:0 0 8px}
 .results-preview.active{display:block}
-.checked-url{text-align:center;padding:28px 0 0;font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.02em}
-.checked-url strong{color:var(--navy);font-weight:500}
+/* Raportin yläosa: sama videopaneeli kuin seosales.fi:n yhteydenoton kiitosnäkymässä */
+.report-head{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--r-lg);background:var(--charcoal);margin:28px auto 0;max-width:960px}
+.report-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:0}
+.report-veil{position:absolute;inset:0;z-index:1;pointer-events:none;background:rgba(16,15,20,.74)}
+.report-head-content{position:relative;z-index:2;padding:44px 24px 40px}
+.report-eyebrow{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--turq-bright)}
+.checked-url{text-align:center;padding:10px 0 0;font-family:var(--mono);font-size:13px;color:var(--text-on-dark);letter-spacing:.02em;overflow-wrap:anywhere}
+.checked-url strong{color:#fff;font-weight:500}
+.report-head .score-ring .bg{stroke:rgba(255,255,255,.14)}
+.report-head .score-num .big{color:#fff}
+.report-head .score-num .sub{color:var(--text-on-dark)}
+.report-head .score-summary{color:#D8D5E0}
+@media(prefers-reduced-motion:reduce){.report-video{display:none}}
 
 /* Score ring */
 .score-section{text-align:center;padding:28px 0 16px}
@@ -193,6 +204,10 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .cat-section{margin-bottom:36px}
 .cat-section-header{display:flex;align-items:center;gap:12px;padding:16px 0 12px;border-bottom:1.5px solid var(--line)}
 .cat-section-header h3{font-size:17px;flex:1}
+.cat-num{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--turq-dark)}
+.results-title{padding:40px 0 8px}
+.results-title p{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--turq-dark);margin-bottom:6px}
+.results-title h2{font-size:clamp(24px,3.4vw,32px)}
 .cat-section-header .cat-section-score{font-family:var(--display);font-size:18px;font-weight:700}
 .checks-list{list-style:none}
 .check-item{padding:16px 0;border-bottom:1px solid var(--line)}
@@ -288,6 +303,11 @@ footer a{color:var(--turq-dark)}
 
 <section class="results-preview" id="results-preview">
   <div class="wrap">
+    <div class="report-head">
+      <video class="report-video" id="report-video" muted loop playsinline preload="none" aria-hidden="true"></video>
+      <span class="report-veil"></span>
+      <div class="report-head-content">
+    <p class="report-eyebrow">Näkyvyysanalyysi</p>
     <p class="checked-url" id="checked-url"></p>
     <div class="score-section">
       <div class="score-ring">
@@ -300,6 +320,8 @@ footer a{color:var(--turq-dark)}
       </div>
       <div id="score-badge-wrap"></div>
       <p class="score-summary" id="score-summary"></p>
+    </div>
+      </div>
     </div>
     <div class="cat-grid" id="cat-grid"></div>
     <div class="stats-row" id="stats-row"></div>
@@ -478,7 +500,7 @@ $('email-form').addEventListener('submit', async (e) => {
 
 function renderPreview(data) {
   $('intro').style.display = 'none';
-  $('checked-url').innerHTML = 'Tarkistettu: <strong>' + esc(data.url) + '</strong>';
+  $('checked-url').innerHTML = '<strong>' + esc(data.url) + '</strong> · ' + new Date().toLocaleDateString('fi-FI');
 
   const circ = 2 * Math.PI * 68;
   const circle = $('score-circle');
@@ -547,9 +569,20 @@ function renderPreview(data) {
   if (data.counts.pass) sr.innerHTML += '<span class="chip pass">' + data.counts.pass + ' kunnossa</span>';
 
   show('results-preview');
+  startReportVideo();
   buildBlurredPreview(data);
   $('gate-wrapper').style.display = '';
   $('results-preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Video ladataan vasta, kun raportti avautuu, eikä lainkaan, jos käyttäjä on pyytänyt vähemmän liikettä tai datansäästöä.
+const REPORT_VIDEO_SRC = 'https://seosales.fi/kasvua-tavoitteleva-yritys.mp4';
+function startReportVideo() {
+  const v = $('report-video');
+  if (v.src || matchMedia('(prefers-reduced-motion: reduce)').matches || navigator.connection?.saveData) return;
+  v.autoplay = true;
+  v.addEventListener('canplay', () => v.play().catch(() => {}), { once: true });
+  v.src = REPORT_VIDEO_SRC;
 }
 
 function renderIntro() {
@@ -577,12 +610,13 @@ function buildBlurredPreview(data) {
 
 function renderFullResults(data) {
   const wrap = $('full-results-content');
-  let html = '';
+  let html = '<div class="results-title"><p>Täysi raportti</p><h2>Tulokset osa-alueittain</h2></div>';
 
-  data.categories.forEach(c => {
+  data.categories.forEach((c, i) => {
     const col = scoreColor(c.score);
     html += '<div class="cat-section">' +
       '<div class="cat-section-header">' +
+        '<span class="cat-num">' + String(i + 1).padStart(2, '0') + '</span>' +
         '<h3>' + esc(c.label) + '</h3>' +
         '<span class="info-wrap">' +
           '<span class="info-btn-section" aria-label="Lisätietoja">?</span>' +
