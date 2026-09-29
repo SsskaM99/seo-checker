@@ -13,13 +13,15 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  --navy:#17161C;--ink-2:#26252D;--text:#34333C;--muted:#807F88;
+  --navy:#17161C;--ink-2:#26252D;--text:#34333C;--muted:#6B6A73;
   --text-on-dark:#C6C2D1;--bg:#FFFFFF;--paper:#F5F5F7;
   --line:#E8E8EC;--line-2:#D8D8DE;
   --violet:#6D4AFF;--violet-dark:#5232E0;--violet-bright:#A08CFF;
   --turq:#12B5AA;--turq-dark:#0C847C;--turq-bright:#25D9C6;
   --charcoal:#17171D;--charcoal-2:#1B1C23;
   --pass:#27AE60;--warn:#E67E22;--fail:#C0392B;
+  /* Tekstinä ja pienissä merkeissä käytettävät tummemmat sävyt (kontrasti vähintään 4.5:1) */
+  --pass-text:#1B7A43;--warn-text:#A35200;
   --display:"Space Grotesk","Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --sans:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -117,8 +119,8 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .score-num .sub{font-size:13px;color:var(--muted);margin-top:2px}
 .score-summary{font-size:15px;color:var(--muted);max-width:520px;margin:0 auto;line-height:1.65}
 .score-badge{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:999px;margin-top:12px}
-.score-badge.good{background:#E8F9F0;color:var(--pass)}
-.score-badge.ok{background:#FFF4E5;color:var(--warn)}
+.score-badge.good{background:#E8F9F0;color:var(--pass-text)}
+.score-badge.ok{background:#FFF4E5;color:var(--warn-text)}
 .score-badge.bad{background:#FDECEC;color:var(--fail)}
 
 /* Category cards */
@@ -131,16 +133,17 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .cat-card .cat-desc{font-size:12px;color:var(--muted);margin-top:8px}
 .cat-card .cat-checks-summary{display:flex;justify-content:center;gap:6px;margin-top:8px}
 .cat-card .cat-checks-summary .pill{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-family:var(--mono);font-size:11px;font-weight:600;color:#fff;line-height:1;padding:0}
-.cat-card .cat-checks-summary .pill.p{background:var(--pass)}
-.cat-card .cat-checks-summary .pill.w{background:var(--warn)}
+.cat-card .cat-checks-summary .pill.p{background:var(--pass-text)}
+.cat-card .cat-checks-summary .pill.w{background:var(--warn-text)}
 .cat-card .cat-checks-summary .pill.f{background:var(--fail)}
 .cat-card .cat-highlight{font-size:12px;color:var(--text);margin-top:6px;line-height:1.5}
 
 /* Info button — hover tooltip (card) */
-.info-btn{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--bg);color:var(--muted);font-family:var(--sans);font-size:12px;font-weight:600;line-height:17px;text-align:center;cursor:help;transition:border-color .2s,color .2s}
+.info-btn{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--bg);color:var(--muted);font-family:var(--sans);font-size:12px;font-weight:600;line-height:17px;text-align:center;cursor:help;padding:0;transition:border-color .2s,color .2s}
 .info-btn:hover{border-color:var(--violet);color:var(--violet)}
 .info-tooltip{display:none;position:absolute;top:36px;right:0;left:0;background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;font-size:13px;color:var(--text);line-height:1.55;text-align:left;box-shadow:0 8px 24px -8px rgba(23,22,28,.12);z-index:10}
 .info-btn:hover + .info-tooltip,
+.info-btn:focus + .info-tooltip,
 .info-tooltip:hover{display:block}
 
 /* Low-score CTA inside card */
@@ -148,18 +151,18 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .cat-card-cta:hover{background:var(--violet);color:#fff}
 
 /* Info button — hover tooltip (section) */
-.info-btn-section{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--bg);color:var(--muted);font-family:var(--sans);font-size:12px;font-weight:600;line-height:19px;text-align:center;cursor:help;transition:border-color .2s,color .2s;flex-shrink:0;position:relative}
+.info-btn-section{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--bg);color:var(--muted);font-family:var(--sans);font-size:12px;font-weight:600;line-height:19px;text-align:center;cursor:help;padding:0;transition:border-color .2s,color .2s;flex-shrink:0;position:relative}
 .info-btn-section:hover{border-color:var(--violet);color:var(--violet)}
 .section-tooltip{display:none;padding:12px 16px;background:var(--paper);border-radius:var(--r-sm);font-size:14px;color:var(--text);line-height:1.6;margin-bottom:4px}
 .info-wrap{position:relative;display:inline-flex;align-items:center}
-.info-wrap:hover .section-tooltip{display:block;position:absolute;top:100%;right:0;width:280px;z-index:10;margin-top:6px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.info-wrap:hover .section-tooltip,.info-wrap:focus-within .section-tooltip{display:block;position:absolute;top:100%;right:0;width:280px;z-index:10;margin-top:6px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 
 /* Stats chips */
 .stats-row{display:flex;justify-content:center;gap:16px;padding:0 0 16px;flex-wrap:wrap}
 .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 14px;border-radius:999px}
 .chip.fail{background:#FDECEC;color:var(--fail)}
-.chip.warn{background:#FFF4E5;color:var(--warn)}
-.chip.pass{background:#E8F9F0;color:var(--pass)}
+.chip.warn{background:#FFF4E5;color:var(--warn-text)}
+.chip.pass{background:#E8F9F0;color:var(--pass-text)}
 
 /* Blurred preview + email gate */
 .gate-wrapper{position:relative;overflow:hidden}
@@ -167,8 +170,8 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .blurred-preview::after{content:"";position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(transparent,var(--bg))}
 .gate-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5}
 .gate-card{background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r-lg);padding:40px 36px;max-width:460px;width:90%;text-align:center;box-shadow:0 24px 60px -20px rgba(23,22,28,.12)}
-.gate-card h3{font-size:22px;margin-bottom:6px}
-.gate-card h3 em{color:var(--turq-dark);font-style:normal}
+.gate-card h2{font-size:22px;margin-bottom:6px}
+.gate-card h2 em{color:var(--turq-dark);font-style:normal}
 .gate-card .gate-sub{font-size:15px;color:var(--muted);margin-bottom:20px;line-height:1.55}
 .gate-card input[type="email"]{
   width:100%;font-family:var(--sans);font-size:15px;padding:13px 16px;
@@ -240,7 +243,14 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 /* Footer */
 footer{padding:28px 0;text-align:center;border-top:1px solid var(--line)}
 footer p{font-size:13px;color:var(--muted)}
-footer a{color:var(--turq-dark)}
+footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:2px}
+
+/* Saavutettavuus */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.video-toggle{position:absolute;right:14px;bottom:14px;z-index:3;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-on-dark);background:rgba(16,15,20,.55);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:6px 12px;cursor:pointer}
+.video-toggle:hover{color:#fff;border-color:rgba(255,255,255,.5)}
+.video-toggle[hidden]{display:none}
 
 /* Responsive */
 @media(max-width:640px){
@@ -274,6 +284,7 @@ footer a{color:var(--turq-dark)}
   </div>
 </header>
 
+<main id="main">
 <section class="hero">
   <div class="wrap">
     <h1>Selvitä, miten hyvin <em>oikeat asiakkaat</em> löytävät sivustosi</h1>
@@ -284,6 +295,7 @@ footer a{color:var(--turq-dark)}
 <section class="input-section">
   <div class="wrap">
     <form class="input-box" id="check-form">
+      <label for="url-input" class="sr-only">Verkkosivun osoite</label>
       <input type="text" id="url-input" placeholder="esim. yritys.fi" autocomplete="url" required>
       <button type="submit" class="btn-primary" id="check-btn">Analysoi</button>
     </form>
@@ -293,25 +305,26 @@ footer a{color:var(--turq-dark)}
 
 <section class="intro" id="intro">
   <div class="wrap">
-    <p class="intro-title">Mitä analyysi kertoo</p>
+    <h2 class="intro-title">Mitä analyysi kertoo</h2>
     <div class="intro-grid" id="intro-grid"></div>
   </div>
 </section>
 
-<div class="loading" id="loading"><div class="spinner"></div><p>Analysoidaan sivustoa – tämä vie yleensä muutaman sekunnin.</p></div>
-<div class="error-msg" id="error"></div>
+<div class="loading" id="loading" role="status" aria-live="polite"><div class="spinner"></div><p>Analysoidaan sivustoa – tämä vie yleensä muutaman sekunnin.</p></div>
+<div class="error-msg" id="error" role="alert"></div>
 
 <section class="results-preview" id="results-preview">
   <div class="wrap">
     <div class="report-head">
       <video class="report-video" id="report-video" muted loop playsinline preload="none" aria-hidden="true"></video>
       <span class="report-veil"></span>
+      <button type="button" class="video-toggle" id="video-toggle" hidden>Pysäytä video</button>
       <div class="report-head-content">
     <p class="report-eyebrow">Näkyvyysanalyysi</p>
     <p class="checked-url" id="checked-url"></p>
     <div class="score-section">
       <div class="score-ring">
-        <svg width="160" height="160" viewBox="0 0 160 160">
+        <svg width="160" height="160" viewBox="0 0 160 160" aria-hidden="true">
           <circle class="bg" cx="80" cy="80" r="68" fill="none" stroke-width="8"/>
           <circle class="fill" id="score-circle" cx="80" cy="80" r="68" fill="none" stroke-width="8" stroke-linecap="round"
             stroke-dasharray="427" stroke-dashoffset="427"/>
@@ -329,14 +342,16 @@ footer a{color:var(--turq-dark)}
 </section>
 
 <div class="gate-wrapper" id="gate-wrapper" style="display:none">
-  <div class="blurred-preview" id="blurred-preview"></div>
+  <div class="blurred-preview" id="blurred-preview" aria-hidden="true" inert></div>
   <div class="gate-overlay">
     <div class="gate-card">
-      <h3>Avaa <em>täysi raportti</em></h3>
+      <h2>Avaa <em>täysi raportti</em></h2>
       <p class="gate-sub">Näet jokaisen tarkistuksen tuloksen, selityksen ja korjausohjeen. Lähetämme raportin myös sähköpostiisi.</p>
       <form id="email-form">
-        <input type="email" id="email-input" placeholder="sähköpostiosoitteesi" required>
-        <input type="tel" id="phone-input" placeholder="puhelinnumero (vapaaehtoinen)">
+        <label for="email-input" class="sr-only">Sähköpostiosoite</label>
+        <input type="email" id="email-input" autocomplete="email" placeholder="sähköpostiosoitteesi" required>
+        <label for="phone-input" class="sr-only">Puhelinnumero (vapaaehtoinen)</label>
+        <input type="tel" id="phone-input" autocomplete="tel" placeholder="puhelinnumero (vapaaehtoinen)">
         <div class="checkbox-row">
           <input type="checkbox" id="newsletter-check">
           <label for="newsletter-check">Haluan myös SEO Salesin uutiskirjeen: ajankohtaisia näkemyksiä näkyvyydestä, myynnistä ja kasvusta.</label>
@@ -362,6 +377,8 @@ footer a{color:var(--turq-dark)}
     <a href="https://seosales.fi/yhteys.html" class="btn-cta" target="_blank" rel="noopener">Varaa maksuton keskustelu</a>
   </div>
 </section>
+
+</main>
 
 <footer>
   <div class="wrap"><p><a href="https://seosales.fi" target="_blank" rel="noopener">SEO Sales</a> — näkyvyydestä kasvuun</p></div>
@@ -417,6 +434,8 @@ const catCtaTexts = {
   keywords: 'Näin tavoitat oikeat asiakkaat'
 };
 
+const STATUS_TEXT = { pass: 'Kunnossa', warn: 'Huomioitavaa', fail: 'Korjattavaa' };
+
 let currentData = null;
 
 function $(id) { return document.getElementById(id); }
@@ -430,9 +449,10 @@ function esc(s) {
 function show(...ids) { ids.forEach(id => $(id).classList.add('active')); }
 function hide(...ids) { ids.forEach(id => $(id).classList.remove('active')); }
 
-function scoreColor(score) {
-  if (score >= 80) return 'var(--pass)';
-  if (score >= 50) return 'var(--warn)';
+// text = true palauttaa tekstiin sopivan, riittävän kontrastisen sävyn.
+function scoreColor(score, text) {
+  if (score >= 80) return text ? 'var(--pass-text)' : 'var(--pass)';
+  if (score >= 50) return text ? 'var(--warn-text)' : 'var(--warn)';
   return 'var(--fail)';
 }
 
@@ -537,17 +557,17 @@ function renderPreview(data) {
     const firstIssue = c.checks.find(ch => ch.status === 'fail') || c.checks.find(ch => ch.status === 'warn');
 
     let cardHtml = '<div class="cat-card">' +
-      '<span class="info-btn" aria-label="Lisätietoja">?</span>' +
+      '<button type="button" class="info-btn" aria-label="Lisätietoja: ' + esc(c.label) + '">?</button>' +
       '<span class="info-tooltip">' + esc(CATS[c.id] ? CATS[c.id].info + ' ' + CATS[c.id].why : c.description) + '</span>' +
       '<div class="cat-label">' + esc(c.label) + '</div>' +
-      '<div class="cat-score" style="color:' + col + '">' + c.score + '</div>' +
+      '<div class="cat-score" style="color:' + scoreColor(c.score, true) + '">' + c.score + '</div>' +
       '<div class="cat-bar"><span style="width:' + c.score + '%;background:' + col + '"></span></div>' +
       '<div class="cat-desc">' + esc(c.description) + '</div>' +
       '<div class="cat-checks-summary">';
 
-    if (passN) cardHtml += '<span class="pill p" title="' + passN + ' kunnossa">' + passN + '</span>';
-    if (warnN) cardHtml += '<span class="pill w" title="' + warnN + ' huomioitavaa">' + warnN + '</span>';
-    if (failN) cardHtml += '<span class="pill f" title="' + failN + ' korjattavaa">' + failN + '</span>';
+    if (passN) cardHtml += '<span class="pill p" title="' + passN + ' kunnossa">' + passN + '<span class="sr-only"> kunnossa</span></span>';
+    if (warnN) cardHtml += '<span class="pill w" title="' + warnN + ' huomioitavaa">' + warnN + '<span class="sr-only"> huomioitavaa</span></span>';
+    if (failN) cardHtml += '<span class="pill f" title="' + failN + ' korjattavaa">' + failN + '<span class="sr-only"> korjattavaa</span></span>';
     cardHtml += '</div>';
 
     if (firstIssue) {
@@ -583,7 +603,15 @@ function startReportVideo() {
   v.autoplay = true;
   v.addEventListener('canplay', () => v.play().catch(() => {}), { once: true });
   v.src = REPORT_VIDEO_SRC;
+  $('video-toggle').hidden = false;
 }
+
+// Liikkuvan taustan voi pysäyttää (WCAG 2.2.2).
+$('video-toggle').addEventListener('click', () => {
+  const v = $('report-video');
+  if (v.paused) { v.play().catch(() => {}); $('video-toggle').textContent = 'Pysäytä video'; }
+  else { v.pause(); $('video-toggle').textContent = 'Toista video'; }
+});
 
 function renderIntro() {
   $('intro-grid').innerHTML = Object.values(CATS).map(c =>
@@ -619,10 +647,10 @@ function renderFullResults(data) {
         '<span class="cat-num">' + String(i + 1).padStart(2, '0') + '</span>' +
         '<h3>' + esc(c.label) + '</h3>' +
         '<span class="info-wrap">' +
-          '<span class="info-btn-section" aria-label="Lisätietoja">?</span>' +
+          '<button type="button" class="info-btn-section" aria-label="Lisätietoja: ' + esc(c.label) + '">?</button>' +
           '<span class="section-tooltip" data-for="' + c.id + '">' + esc(CATS[c.id] ? CATS[c.id].info + ' ' + CATS[c.id].why : c.description) + '</span>' +
         '</span>' +
-        '<span class="cat-section-score" style="color:' + col + '">' + c.score + '/100</span>' +
+        '<span class="cat-section-score" style="color:' + scoreColor(c.score, true) + '">' + c.score + '/100</span>' +
       '</div>' +
       '<ul class="checks-list">';
 
@@ -631,7 +659,8 @@ function renderFullResults(data) {
     sorted.forEach(ch => {
       html += '<li class="check-item">' +
         '<div class="check-header">' +
-          '<span class="check-dot ' + ch.status + '"></span>' +
+          '<span class="check-dot ' + ch.status + '" aria-hidden="true"></span>' +
+          '<span class="sr-only">' + STATUS_TEXT[ch.status] + ': </span>' +
           '<div>' +
             '<div class="check-label">' + esc(ch.label) + '</div>' +
             '<div class="check-msg">' + esc(ch.message) + '</div>' +
