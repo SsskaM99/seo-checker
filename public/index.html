@@ -76,7 +76,7 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .spinner{width:36px;height:36px;border:3px solid var(--line);border-top-color:var(--violet);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading p{color:var(--muted);font-size:15px}
-.error-msg{text-align:center;padding:24px;color:var(--fail);font-size:15px;display:none}
+.error-msg{text-align:center;padding:24px;color:var(--fail);font-size:15px;display:none;max-width:620px;margin:0 auto;line-height:1.6}
 .error-msg.active{display:block}
 
 /* Results preview */
@@ -380,12 +380,15 @@ $('check-form').addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Tuntematon virhe');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.error || 'Analyysi epäonnistui. Kokeile uudelleen.'), { code: data.code });
     currentData = data;
     renderPreview(data);
   } catch (err) {
-    $('error').textContent = err.message;
+    $('error').textContent = err.code ? err.message : (err.message.includes('fetch') ? 'Yhteys analyysipalveluun katkesi. Kokeile uudelleen.' : err.message);
+    if (err.code === 'bot_protection') {
+      $('error').insertAdjacentHTML('beforeend', ' <a href="https://seosales.fi/yhteys.html" target="_blank" rel="noopener" style="color:var(--violet);font-weight:600">Varaa maksuton keskustelu &rarr;</a>');
+    }
     show('error');
   } finally {
     hide('loading');

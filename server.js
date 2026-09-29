@@ -2,8 +2,10 @@ const express = require('express');
 const cheerio = require('cheerio');
 const path = require('path');
 const fs = require('fs');
+const { fetchPage, fetchSiteFiles, FetchError } = require('./fetcher');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const LEADS_FILE = path.join(__dirname, 'leads.json');
 const ANALYSES_FILE = path.join(__dirname, 'analyses.json');
@@ -33,57 +35,36 @@ function saveAnalysis(entry) {
   fs.writeFileSync(ANALYSES_FILE, JSON.stringify(analyses, null, 2), 'utf8');
 }
 
+// Yksinkertainen IP-kohtainen rajoitus, ettei analyysiä voi käyttää massahakuihin.
+const RATE_WINDOW_MS = 10 * 60 * 1000;
+const RATE_MAX = Number(process.env.RATE_MAX || 20);
+const rateHits = new Map();
+function rateLimited(ip) {
+  if (['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip)) return false; // paikallinen testaus
+  const now = Date.now();
+  const hits = (rateHits.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS);
+  hits.push(now);
+  rateHits.set(ip, hits);
+  if (rateHits.size > 5000) rateHits.clear();
+  return hits.length > RATE_MAX;
+}
+
+async function runAnalysis(input) {
+  const page = await fetchPage(input);
+  const siteFiles = await fetchSiteFiles(page.finalUrl);
+  return analyze(page.html, page.finalUrl, { responseTimeMs: page.responseTimeMs, ...siteFiles });
+}
+
 app.post('/api/check', async (req, res) => {
-  const { url } = req.body;
-  if (!url) return res.status(400).json({ error: 'URL puuttuu' });
-
-  let targetUrl = url.trim();
-  if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
-
-  try { new URL(targetUrl); }
-  catch { return res.status(400).json({ error: 'Virheellinen URL' }); }
+  if (rateLimited(req.ip)) {
+    return res.status(429).json({ error: 'Olet tehnyt useita analyysejä lyhyessä ajassa. Kokeile uudelleen hetken kuluttua.', code: 'rate_limited' });
+  }
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
-    const fetchStart = Date.now();
-    const response = await fetch(targetUrl, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'SEOSalesChecker/1.0 (+https://seosales.fi)',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'fi,en;q=0.9',
-      },
-      redirect: 'follow',
-    });
-    const responseTimeMs = Date.now() - fetchStart;
-    clearTimeout(timeout);
-
-    if (!response.ok) return res.status(502).json({ error: `Sivusto vastasi virheellä: ${response.status}` });
-
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
-      return res.status(400).json({ error: 'URL ei palauttanut HTML-sivua' });
-    }
-
-    const html = await response.text();
-
-    // Tarkista robots.txt ja sitemap rinnakkain
-    const parsedOrigin = new URL(targetUrl).origin;
-    const [robotsOk, sitemapOk] = await Promise.all([
-      fetch(`${parsedOrigin}/robots.txt`, { signal: AbortSignal.timeout(5000), headers: { 'User-Agent': 'SEOSalesChecker/1.0' } })
-        .then(r => r.ok && (r.headers.get('content-type') || '').includes('text/plain'))
-        .catch(() => false),
-      fetch(`${parsedOrigin}/sitemap.xml`, { signal: AbortSignal.timeout(5000), headers: { 'User-Agent': 'SEOSalesChecker/1.0' } })
-        .then(r => r.ok && ((r.headers.get('content-type') || '').includes('xml') || (r.headers.get('content-type') || '').includes('text/')))
-        .catch(() => false),
-    ]);
-
-    const results = analyze(html, targetUrl, { responseTimeMs, robotsOk, sitemapOk });
+    const results = await runAnalysis(req.body?.url);
 
     saveAnalysis({
-      url: targetUrl,
+      url: results.url,
       score: results.score,
       categories: results.categories.map(c => ({ id: c.id, score: c.score })),
       timestamp: new Date().toISOString(),
@@ -91,8 +72,9 @@ app.post('/api/check', async (req, res) => {
 
     res.json(results);
   } catch (err) {
-    if (err.name === 'AbortError') return res.status(504).json({ error: 'Sivuston lataus kesti liian kauan (yli 15 s)' });
-    return res.status(502).json({ error: `Sivustoa ei voitu hakea: ${err.message}` });
+    if (err instanceof FetchError) return res.status(err.httpStatus).json({ error: err.message, code: err.code });
+    console.error('Analyysivirhe:', err);
+    return res.status(500).json({ error: 'Analyysi epäonnistui odottamattomasti. Kokeile uudelleen.', code: 'internal' });
   }
 });
 
@@ -285,29 +267,7 @@ app.post('/api/lead', (req, res) => {
 app.get('/api/report-preview', async (req, res) => {
   const testUrl = req.query.url || 'https://esimerkki.fi';
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    const fetchStart = Date.now();
-    const response = await fetch(testUrl, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'SEOSalesChecker/1.0', 'Accept': 'text/html' },
-      redirect: 'follow',
-    });
-    clearTimeout(timeout);
-    const responseTimeMs = Date.now() - fetchStart;
-    const html = await response.text();
-
-    const parsedOrigin = new URL(testUrl).origin;
-    const [robotsOk, sitemapOk] = await Promise.all([
-      fetch(`${parsedOrigin}/robots.txt`, { signal: AbortSignal.timeout(5000), headers: { 'User-Agent': 'SEOSalesChecker/1.0' }, redirect: 'follow' })
-        .then(r => r.ok && (r.headers.get('content-type') || '').includes('text/plain'))
-        .catch(() => false),
-      fetch(`${parsedOrigin}/sitemap.xml`, { signal: AbortSignal.timeout(5000), headers: { 'User-Agent': 'SEOSalesChecker/1.0' }, redirect: 'follow' })
-        .then(r => r.ok && ((r.headers.get('content-type') || '').includes('xml') || (r.headers.get('content-type') || '').includes('text/')))
-        .catch(() => false),
-    ]);
-
-    const data = analyze(html, testUrl, { responseTimeMs, robotsOk, sitemapOk });
+    const data = await runAnalysis(testUrl);
     const reportHtml = buildReportHTML({ url: data.url, score: data.score, summary: data.summary, categories: data.categories });
     res.send(reportHtml);
   } catch (err) {
@@ -317,15 +277,15 @@ app.get('/api/report-preview', async (req, res) => {
 
 function analyze(html, url, extra = {}) {
   const $ = cheerio.load(html);
-  const parsedUrl = new URL(url);
+  const text = visibleText($);
 
   const seo = analyzeSEO($, url);
   const technical = analyzeTechnical($, url, extra);
-  const content = analyzeContent($);
+  const content = analyzeContent($, text);
   const social = analyzeSocial($);
-  const ai = analyzeAI($);
+  const ai = analyzeAI($, text, extra);
   const lang = $('html').attr('lang') || '';
-  const keywords = analyzeKeywords($, lang);
+  const keywords = analyzeKeywords($, lang, text);
 
   const categories = [seo, technical, content, social, ai, keywords];
   const totalWeight = categories.reduce((s, c) => s + c.weight, 0);
@@ -342,6 +302,17 @@ function analyze(html, url, extra = {}) {
       pass: categories.reduce((s, c) => s + c.checks.filter(x => x.status === 'pass').length, 0),
     },
   };
+}
+
+// Kävijälle näkyvä teksti: skriptit, tyylit ja upotukset eivät ole sisältöä.
+function visibleText($) {
+  const body = $('body').clone();
+  body.find('script,style,noscript,template,svg,iframe').remove();
+  return body.text().replace(/\s+/g, ' ').trim();
+}
+
+function countWords(text) {
+  return (text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
 }
 
 function analyzeSEO($, url) {
@@ -401,12 +372,14 @@ function analyzeSEO($, url) {
 
   const links = $('a[href]');
   let internal = 0, external = 0;
+  const bareHost = h => h.replace(/^www\./, '');
+  const pageHost = bareHost(new URL(url).hostname);
   links.each((_, el) => {
     const href = $(el).attr('href') || '';
     if (/^(#|javascript:|mailto:|tel:)/.test(href)) return;
     try {
       const lUrl = new URL(href, url);
-      if (lUrl.hostname === new URL(url).hostname) internal++; else external++;
+      if (bareHost(lUrl.hostname) === pageHost) internal++; else external++;
     } catch { internal++; }
   });
   max += 10;
@@ -454,6 +427,8 @@ function analyzeTechnical($, url, extra = {}) {
   max += 10;
   if (robotsMeta.includes('noindex')) {
     checks.push(ck('Indeksointi', 'fail', 'Sivulla on noindex — hakukoneet eivät indeksoi sivua.', 'Poista noindex jos haluat sivun näkyvän hakutuloksissa.'));
+  } else if (extra.robots?.blocksAll('Googlebot')) {
+    checks.push(ck('Indeksointi', 'fail', 'Robots.txt estää Googlea lukemasta sivustoa.', 'Poista robots.txt-tiedostosta "Disallow: /", jos haluat sivuston näkyvän hakutuloksissa.'));
   } else {
     checks.push(ck('Indeksointi', 'pass', 'Sivu sallii hakukoneindeksoinnin.'));
     score += 10;
@@ -508,12 +483,11 @@ function analyzeTechnical($, url, extra = {}) {
   return cat('technical', 'Tekninen', 'Tekniset perusteet', score, max, checks, 2);
 }
 
-function analyzeContent($) {
+function analyzeContent($, text) {
   const checks = [];
   let score = 0, max = 0;
 
-  const bodyText = $('body').text().replace(/\s+/g, ' ').trim();
-  const wordCount = bodyText.split(/\s+/).length;
+  const wordCount = countWords(text);
   max += 20;
   if (wordCount < 100) {
     checks.push(ck('Sisällön määrä', 'fail', `Noin ${wordCount} sanaa.`, 'Vähintään 300 sanaa on hyvä lähtökohta.'));
@@ -607,7 +581,7 @@ function analyzeSocial($) {
   return cat('social', 'Sosiaalinen', 'Jakamisnäkyvyys', score, max, checks, 1);
 }
 
-function analyzeAI($) {
+function analyzeAI($, text, extra = {}) {
   const checks = [];
   let score = 0, max = 0;
 
@@ -642,19 +616,40 @@ function analyzeAI($) {
     checks.push(ck('FAQ-schema', 'warn', 'FAQPage-schemaa ei löytynyt.', 'FAQ-schema voi tuoda lisänäkyvyyttä hakutuloksiin.'));
   }
 
-  const metaRobots = $('meta[name="robots"]').attr('content') || '';
+  const metaRobots = ($('meta[name="robots"]').attr('content') || '').toLowerCase();
+  const blocked = extra.robots?.blockedAiBots || [];
+  const blockedSearch = blocked.filter(b => b.search);
+  const names = list => list.map(b => b.name).join(', ');
   max += 15;
-  if (metaRobots.includes('noai') || metaRobots.includes('noimageai')) {
-    checks.push(ck('Tekoälypääsy', 'warn', 'Sivusto estää tekoälybotteja.', 'Jos haluat näkyä tekoälyhauissa, tarkista robots-asetukset.'));
+  if (blockedSearch.length) {
+    checks.push(ck('Tekoälypääsy', 'fail', `Robots.txt estää tekoälyhakuja lukemasta sivustoa: ${names(blockedSearch)}.`, 'Kun tekoälyhaku ei pääse sivustolle, se ei voi suositella teitä vastauksissaan. Salli ainakin hakubotit robots.txt-tiedostossa.'));
+  } else if (blocked.length || metaRobots.includes('noai')) {
+    const what = blocked.length ? `Robots.txt estää osan tekoälyboteista (${names(blocked)})` : 'Sivulla on noai-merkintä';
+    checks.push(ck('Tekoälypääsy', 'warn', `${what}. Tekoälyhaut pääsevät silti sivustolle.`, 'Estetyt botit keräävät aineistoa tekoälymallien koulutukseen. Esto voi olla harkittu valinta, mutta se voi heikentää sitä, miten mallit tuntevat yrityksen.'));
+    score += 8;
   } else {
-    checks.push(ck('Tekoälypääsy', 'pass', 'Sivusto sallii tekoälybottien pääsyn.'));
+    checks.push(ck('Tekoälypääsy', 'pass', extra.robots ? 'Robots.txt sallii tekoälyhakujen ja -bottien pääsyn sivustolle.' : 'Tekoälybotteja ei ole estetty.'));
     score += 15;
+  }
+
+  // Useimmat tekoälybotit eivät aja JavaScriptiä: jos sisältö syntyy vasta selaimessa, ne näkevät tyhjän sivun.
+  const words = countWords(text);
+  const appShell = $('#root,#app,#__next,#__nuxt,[data-reactroot],app-root').length > 0 || $('script[src]').length >= 5;
+  max += 20;
+  if (words < 80 && appShell) {
+    checks.push(ck('Sisältö ilman JavaScriptiä', 'fail', `Sivun sisältö syntyy vasta JavaScriptillä — botit näkevät vain noin ${words} sanaa.`, 'Tekoälybotit ja osa hakukoneista eivät aja JavaScriptiä. Palvelinpuolen renderöinti tai esirenderöinti tuo sisällön niiden ulottuville.'));
+  } else if (words < 200 && appShell) {
+    checks.push(ck('Sisältö ilman JavaScriptiä', 'warn', `Vain osa sisällöstä näkyy ilman JavaScriptiä (noin ${words} sanaa).`, 'Varmista, että palvelut ja tärkein teksti ovat mukana sivun HTML-koodissa.'));
+    score += 10;
+  } else {
+    checks.push(ck('Sisältö ilman JavaScriptiä', 'pass', 'Sisältö näkyy suoraan sivun koodissa, joten myös tekoälybotit pystyvät lukemaan sen.'));
+    score += 20;
   }
 
   return cat('ai', 'Tekoälynäkyvyys', 'GEO & AI Visibility', score, max, checks, 2);
 }
 
-function analyzeKeywords($, pageLang) {
+function analyzeKeywords($, pageLang, text) {
   const checks = [];
   let score = 0, max = 0;
 
@@ -662,7 +657,7 @@ function analyzeKeywords($, pageLang) {
 
   const FI_STOP = new Set(['ja','on','ei','se','että','ole','oli','ovat','tai','kun','niin','kuin','mutta','myös','voi','olla','jos','tämä','tässä','sen','sitä','joka','nämä','niitä','jossa','hän','he','me','te','ne','jne','eli','sekä','vai','tms','yli','alle','kanssa','mukaan','joiden','jonka','jotka','joita','niiden','tämän','näiden','siitä','näitä','niissä','joissa','enemmän','vähemmän','hyvin','erittäin','todella','melko','aivan','ihan','siis','kaikki','kaikkia','kaikista','jokainen','muu','muut','muita','jokin','joku','mitä','mikä','missä','miten','miksi','kuka','koska','paljon','vain','aina','usein','myöhemmin','ennen','jälkeen','edes','vielä','nyt','sitten','täällä','siellä','tänne','sinne','tähän','siihen','näin','noin','siten','kuten','esim','mm','yms','ym','www','http','https','com','html','the','and','for','you','with','this','that','are','from','your','all','not','was','will','can','has','been','have','had','but','our','one','their','more','about','which','when','would','there','each','than','its','into','also','how','other','what','some','them','these','most','may','then','very','just','any','new','only','such','over','many','well','between','much','both','own','still','before','after','through','should','back','where','even','too','off','out','got','get','did','made','say','down','long','find','here','way','two','now']);
 
-  const bodyText = $('body').text().replace(/\s+/g, ' ').toLowerCase();
+  const bodyText = text.toLowerCase();
   const words = bodyText.match(/[a-zäöåéü]{3,}/g) || [];
   const filtered = words.filter(w => !FI_STOP.has(w) && w.length >= 4);
   const totalTerms = filtered.length;
