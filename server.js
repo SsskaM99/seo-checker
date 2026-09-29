@@ -121,7 +121,7 @@ function buildReportHTML({ url, score, summary, categories }) {
         <div style="font-size:14px;color:#34333C;line-height:1.6">${esc(ch.message)}</div>
         ${ch.tip ? `<div style="font-size:13px;color:#807F88;margin-top:6px;line-height:1.5"><strong>Miten korjata:</strong> ${esc(ch.tip)}</div>` : ''}
         <div style="margin-top:10px">
-          <a href="${CTA_URL}" style="font-size:12px;color:#6D4AFF;text-decoration:none;font-weight:600;letter-spacing:0.03em">Haluatko, ett&auml; k&auml;ymme t&auml;m&auml;n yhdess&auml; l&auml;pi? Varaa maksuton tapaaminen &rarr;</a>
+          <a href="${CTA_URL}" style="font-size:12px;color:#6D4AFF;text-decoration:none;font-weight:600;letter-spacing:0.03em">Haluatko, ett&auml; k&auml;ymme t&auml;m&auml;n yhdess&auml; l&auml;pi? Varaa maksuton keskustelu &rarr;</a>
         </div>
       </div>
     </td></tr>`;
@@ -185,11 +185,11 @@ function buildReportHTML({ url, score, summary, categories }) {
 
   <!-- Bottom CTA -->
   <tr><td style="padding:36px 40px;text-align:center;background:#17161C">
-    <div style="font-size:22px;font-weight:700;color:#FFFFFF;margin-bottom:8px">N&auml;kyvyys kuntoon &mdash; yhdess&auml;</div>
+    <div style="font-size:22px;font-weight:700;color:#FFFFFF;margin-bottom:8px">Tehd&auml;&auml;n n&auml;kyvyydest&auml; myynti&auml;</div>
     <div style="font-size:14px;color:#C6C2D1;line-height:1.6;margin-bottom:20px;max-width:440px;margin-left:auto;margin-right:auto">
-      T&auml;m&auml; analyysi kattaa perusteet. Tapaamisessa p&auml;&auml;st&auml;&auml;n syvemm&auml;lle &mdash; k&auml;ymme l&auml;pi juuri teid&auml;n yritykselle t&auml;rkeimm&auml;t kehityskohteet ja rakennamme suunnitelman.
+      Analyysi n&auml;ytt&auml;&auml; l&auml;ht&ouml;tilanteen. Keskustelussa katsomme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;.
     </div>
-    <a href="${CTA_URL}" style="display:inline-block;background:#FFFFFF;color:#17161C;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 32px;border-radius:8px;text-decoration:none">Varaa maksuton tapaaminen</a>
+    <a href="${CTA_URL}" style="display:inline-block;background:#FFFFFF;color:#17161C;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 32px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
   </td></tr>
 
   <!-- Footer -->
@@ -322,51 +322,51 @@ function analyzeSEO($, url) {
   const title = $('title').first().text().trim();
   max += 15;
   if (!title) {
-    checks.push(ck('Title-tagi', 'fail', 'Title-tagi puuttuu kokonaan.', 'Lisää <title> sivulle — se on tärkein yksittäinen SEO-elementti.'));
+    checks.push(ck('Sivun otsikko (title)', 'fail', 'Sivulta puuttuu otsikko, joka näkyy hakutuloksessa ja selaimen välilehdellä.', 'Lisää sivulle <title>-otsikko. Se on hakukoneoptimoinnin tärkein yksittäinen elementti.'));
   } else if (title.length < 30) {
-    checks.push(ck('Title-tagi', 'warn', `Title on lyhyt (${title.length} merkkiä).`, 'Suositeltu pituus on 50–60 merkkiä.'));
+    checks.push(ck('Sivun otsikko (title)', 'warn', `Otsikko on lyhyt (${title.length} merkkiä).`, 'Suositeltu pituus on 50–60 merkkiä.'));
     score += 7;
   } else if (title.length > 60) {
-    checks.push(ck('Title-tagi', 'warn', `Title on pitkä (${title.length} merkkiä).`, 'Google katkaisee yleensä yli 60 merkin titlet.'));
+    checks.push(ck('Sivun otsikko (title)', 'warn', `Otsikko on pitkä (${title.length} merkkiä).`, 'Google katkaisee yleensä yli 60 merkin otsikot, jolloin tärkein viesti voi jäädä näkymättä.'));
     score += 9;
   } else {
-    checks.push(ck('Title-tagi', 'pass', `Title on hyvä (${title.length} merkkiä).`));
+    checks.push(ck('Sivun otsikko (title)', 'pass', `Otsikko on sopivan mittainen (${title.length} merkkiä).`));
     score += 15;
   }
 
   const desc = $('meta[name="description"]').attr('content')?.trim() || '';
   max += 15;
   if (!desc) {
-    checks.push(ck('Meta description', 'fail', 'Meta description puuttuu.', 'Meta description näkyy hakutuloksissa ja vaikuttaa klikkausprosenttiin.'));
+    checks.push(ck('Hakutuloksen kuvaus', 'fail', 'Sivulta puuttuu kuvaus (meta description).', 'Kuvaus näkyy hakutuloksessa otsikon alla. Hyvin kirjoitettu kuvaus saa hakijan klikkaamaan juuri teitä.'));
   } else if (desc.length < 70) {
-    checks.push(ck('Meta description', 'warn', `Description on lyhyt (${desc.length} merkkiä).`, 'Suositeltu pituus on 140–160 merkkiä.'));
+    checks.push(ck('Hakutuloksen kuvaus', 'warn', `Kuvaus on lyhyt (${desc.length} merkkiä).`, 'Suositeltu pituus on 140–160 merkkiä.'));
     score += 7;
   } else if (desc.length > 160) {
-    checks.push(ck('Meta description', 'warn', `Description on pitkä (${desc.length} merkkiä).`, 'Google katkaisee yleensä yli 160 merkin descriptionit.'));
+    checks.push(ck('Hakutuloksen kuvaus', 'warn', `Kuvaus on pitkä (${desc.length} merkkiä).`, 'Google katkaisee yleensä yli 160 merkin kuvaukset.'));
     score += 9;
   } else {
-    checks.push(ck('Meta description', 'pass', `Meta description on hyvä (${desc.length} merkkiä).`));
+    checks.push(ck('Hakutuloksen kuvaus', 'pass', `Kuvaus on sopivan mittainen (${desc.length} merkkiä).`));
     score += 15;
   }
 
   const h1s = $('h1');
   max += 10;
   if (h1s.length === 0) {
-    checks.push(ck('H1-otsikko', 'fail', 'H1-otsikko puuttuu.', 'Jokaisella sivulla tulisi olla täsmälleen yksi H1-otsikko.'));
+    checks.push(ck('Pääotsikko (H1)', 'fail', 'Sivulta puuttuu pääotsikko.', 'Jokaisella sivulla tulisi olla täsmälleen yksi H1-otsikko.'));
   } else if (h1s.length > 1) {
-    checks.push(ck('H1-otsikko', 'warn', `Sivulla on ${h1s.length} H1-otsikkoa.`, 'Suosituksena on yksi H1 per sivu.'));
+    checks.push(ck('Pääotsikko (H1)', 'warn', `Sivulla on ${h1s.length} pääotsikkoa.`, 'Yksi pääotsikko kertoo hakukoneelle selkeästi, mistä sivu kertoo.'));
     score += 5;
   } else {
-    checks.push(ck('H1-otsikko', 'pass', `H1 löytyy: "${trunc(h1s.first().text().trim(), 60)}"`));
+    checks.push(ck('Pääotsikko (H1)', 'pass', `Pääotsikko löytyy: "${trunc(h1s.first().text().trim(), 60)}"`));
     score += 10;
   }
 
   const canonical = $('link[rel="canonical"]').attr('href') || '';
   max += 10;
   if (!canonical) {
-    checks.push(ck('Canonical-URL', 'warn', 'Canonical-tagi puuttuu.', 'Canonical estää duplikaattiongelmia hakutuloksissa.'));
+    checks.push(ck('Ensisijainen osoite (canonical)', 'warn', 'Sivulta puuttuu canonical-merkintä.', 'Merkintä kertoo Googlelle, mikä osoite on sivun virallinen versio, ja estää saman sisällön kilpailemasta itseään vastaan.'));
   } else {
-    checks.push(ck('Canonical-URL', 'pass', 'Canonical-URL on asetettu.'));
+    checks.push(ck('Ensisijainen osoite (canonical)', 'pass', 'Sivun virallinen osoite on merkitty.'));
     score += 10;
   }
 
@@ -390,7 +390,7 @@ function analyzeSEO($, url) {
     score += 10;
   }
 
-  return cat('seo', 'SEO', 'Hakukonenäkyvyys', score, max, checks, 3);
+  return cat('seo', 'Hakukoneet', 'Löytääkö Google sivustosi, ja houkutteleeko hakutulos klikkaamaan?', score, max, checks, 3);
 }
 
 function analyzeTechnical($, url, extra = {}) {
@@ -480,7 +480,7 @@ function analyzeTechnical($, url, extra = {}) {
     }
   }
 
-  return cat('technical', 'Tekninen', 'Tekniset perusteet', score, max, checks, 2);
+  return cat('technical', 'Tekniikka', 'Toimiiko sivusto nopeasti ja luotettavasti kaikilla laitteilla?', score, max, checks, 2);
 }
 
 function analyzeContent($, text) {
@@ -533,7 +533,7 @@ function analyzeContent($, text) {
     score += 15;
   }
 
-  return cat('content', 'Sisältö', 'Sisällön laatu', score, max, checks, 2);
+  return cat('content', 'Sisältö', 'Onko sisältöä riittävästi, ja onko se selkeästi jäsennelty?', score, max, checks, 2);
 }
 
 function analyzeSocial($) {
@@ -578,7 +578,7 @@ function analyzeSocial($) {
     score += 10;
   }
 
-  return cat('social', 'Sosiaalinen', 'Jakamisnäkyvyys', score, max, checks, 1);
+  return cat('social', 'Somenäkyvyys', 'Miltä sivusto näyttää, kun joku jakaa sen LinkedInissä tai viestisovelluksessa?', score, max, checks, 1);
 }
 
 function analyzeAI($, text, extra = {}) {
@@ -610,10 +610,10 @@ function analyzeAI($, text, extra = {}) {
   });
   max += 15;
   if (faqSchema) {
-    checks.push(ck('FAQ-schema', 'pass', 'FAQPage-schema löytyi — tukee hakutulosten rich snippettejä.'));
+    checks.push(ck('UKK-merkinnät (FAQ-schema)', 'pass', 'Usein kysyttyjen kysymysten merkinnät löytyivät. Ne auttavat hakukoneita ja tekoälyjä poimimaan vastauksia suoraan sivulta.'));
     score += 15;
   } else {
-    checks.push(ck('FAQ-schema', 'warn', 'FAQPage-schemaa ei löytynyt.', 'FAQ-schema voi tuoda lisänäkyvyyttä hakutuloksiin.'));
+    checks.push(ck('UKK-merkinnät (FAQ-schema)', 'warn', 'Usein kysyttyjen kysymysten merkintöjä ei löytynyt.', 'Merkityt kysymykset ja vastaukset ovat tekoälyhauille helppo lähde, ja ne voivat tuoda lisänäkyvyyttä hakutuloksiin.'));
   }
 
   const metaRobots = ($('meta[name="robots"]').attr('content') || '').toLowerCase();
@@ -646,7 +646,7 @@ function analyzeAI($, text, extra = {}) {
     score += 20;
   }
 
-  return cat('ai', 'Tekoälynäkyvyys', 'GEO & AI Visibility', score, max, checks, 2);
+  return cat('ai', 'Tekoälyhaut', 'Voivatko ChatGPT ja muut tekoälyhaut suositella teitä?', score, max, checks, 2);
 }
 
 function analyzeKeywords($, pageLang, text) {
@@ -665,7 +665,7 @@ function analyzeKeywords($, pageLang, text) {
   // Minimisisältökynnys — liian vähän tekstiä -> ei luotettavaa analyysiä
   if (totalTerms < 30) {
     checks.push(ck('Sisällön määrä', 'fail', 'Sivustolla on liian vähän tekstisisältöä avainsana-analyysiin.', 'Hakukoneet tarvitsevat riittävästi tekstiä ymmärtääkseen, mistä sivu kertoo. Alle 100 sanaa ei riitä.'));
-    return cat('keywords', 'Avainsanat', 'Löytävätkö oikeat asiakkaat sivustosi?', 5, 100, checks, 2);
+    return cat('keywords', 'Avainsanat', 'Tuoko sivusto ostavia asiakkaita vai satunnaisia kävijöitä?', 5, 100, checks, 2);
   }
 
   const freq = {};
@@ -774,7 +774,7 @@ function analyzeKeywords($, pageLang, text) {
     checks.push(ck('Myyntivalmius', 'fail', `Sivusto kertoo, mutta ei myy — kävijä saa tietoa mutta ei syytä ottaa yhteyttä.`, 'Kävijä tarvitsee selkeän syyn toimia: mitä tarjoat, kenelle ja miten pääsee alkuun.'));
   }
 
-  return cat('keywords', 'Avainsanat', 'Löytävätkö oikeat asiakkaat sivustosi?', score, max, checks, 2);
+  return cat('keywords', 'Avainsanat', 'Tuoko sivusto ostavia asiakkaita vai satunnaisia kävijöitä?', score, max, checks, 2);
 }
 
 function cat(id, label, desc, score, max, checks, weight) {
@@ -790,10 +790,10 @@ function trunc(s, n) {
 }
 
 function makeSummary(score) {
-  if (score >= 85) return 'Sivustosi perusteet ovat hyvällä mallilla. Systemaattisella optimoinnilla tuloksia voi parantaa entisestään.';
-  if (score >= 60) return 'Kohtuullinen lähtötilanne — selkeitä kehityskohtia löytyy. Pienetkin parannukset voivat tuoda merkittävästi lisää näkyvyyttä.';
-  if (score >= 35) return 'Useita puutteita, jotka todennäköisesti vaikuttavat näkyvyyteen. Systemaattinen optimointi kannattaa aloittaa heti.';
-  return 'Merkittäviä puutteita näkyvyyden perusteissa. Sivustolla on paljon hyödyntämätöntä potentiaalia.';
+  if (score >= 85) return 'Sivustosi perusta on vahva. Hienosäädöllä näkyvyydestä saa vielä enemmän irti asiakashankintaan.';
+  if (score >= 60) return 'Hyvä lähtötilanne, jossa on selkeitä kehityskohteita. Pienilläkin korjauksilla näkyvyys voi kasvaa selvästi.';
+  if (score >= 35) return 'Sivustossa on paljon hyödyntämätöntä potentiaalia. Kun tärkeimmät kohdat korjataan oikeassa järjestyksessä, näkyvyys paranee nopeasti.';
+  return 'Sivustossa on paljon kasvuvaraa. Perusteiden korjaaminen on nopein tapa saada lisää näkyvyyttä ja yhteydenottoja.';
 }
 
 app.listen(PORT, () => {

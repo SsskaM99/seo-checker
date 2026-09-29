@@ -70,6 +70,16 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .btn-primary:hover{background:var(--violet-dark);transform:translateY(-1px);box-shadow:0 8px 20px -10px rgba(23,22,28,.5)}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
+/* Intro before analysis */
+.input-meta{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:14px}
+.intro{padding:12px 0 56px}
+.intro-title{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--turq-dark);margin-bottom:18px}
+.intro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:960px;margin:0 auto}
+.intro-item{background:var(--paper);border-radius:var(--r-md);padding:22px 20px}
+.intro-item .cat-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.intro-item h3{font-size:17px;line-height:1.3;margin-bottom:8px}
+.intro-item p{font-size:14px;color:var(--text);line-height:1.6}
+
 /* Loading */
 .loading{text-align:center;padding:48px 0;display:none}
 .loading.active{display:block}
@@ -142,7 +152,7 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 
 /* Blurred preview + email gate */
 .gate-wrapper{position:relative;overflow:hidden}
-.blurred-preview{filter:blur(6px);opacity:.55;pointer-events:none;padding:0 0 32px;user-select:none;max-height:380px;overflow:hidden}
+.blurred-preview{filter:blur(6px);opacity:.55;pointer-events:none;padding:0 0 32px;user-select:none;max-height:480px;overflow:hidden}
 .blurred-preview::after{content:"";position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(transparent,var(--bg))}
 .gate-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5}
 .gate-card{background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r-lg);padding:40px 36px;max-width:460px;width:90%;text-align:center;box-shadow:0 24px 60px -20px rgba(23,22,28,.12)}
@@ -227,7 +237,9 @@ footer a{color:var(--turq-dark)}
   .logo img{height:18px}
   .nav-right{gap:10px}
   .nav-link{display:none}
+  .nav-cta{white-space:nowrap;font-size:10px;letter-spacing:.04em;padding:8px 12px}
   .cat-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .intro-grid{grid-template-columns:1fr;gap:10px}
   .gate-card{padding:28px 20px}
   .info-tooltip{font-size:12px;padding:10px 12px}
 }
@@ -242,15 +254,15 @@ footer a{color:var(--turq-dark)}
     </a>
     <div class="nav-right">
       <a href="https://seosales.fi" class="nav-link" target="_blank" rel="noopener">seosales.fi</a>
-      <a href="https://seosales.fi/yhteys.html" class="nav-cta" target="_blank" rel="noopener">Varaa tapaaminen</a>
+      <a href="https://seosales.fi/yhteys.html" class="nav-cta" target="_blank" rel="noopener">Varaa maksuton keskustelu</a>
     </div>
   </div>
 </header>
 
 <section class="hero">
   <div class="wrap">
-    <h1>Selvitä sivustosi <em>näkyvyyden tila</em></h1>
-    <p>Syötä verkkosivusi osoite — analysoimme hakukonenäkyvyyden, tekniset perusteet, sisällön laadun ja tekoälynäkyvyyden.</p>
+    <h1>Selvitä, miten hyvin <em>oikeat asiakkaat</em> löytävät sivustosi</h1>
+    <p>Analyysi käy sivustosi läpi hakukoneiden, tekoälyhakujen ja kävijän silmin. Saat muutamassa sekunnissa selkeän kuvan siitä, mikä on kunnossa ja mikä kannattaa korjata ensin.</p>
   </div>
 </section>
 
@@ -260,10 +272,18 @@ footer a{color:var(--turq-dark)}
       <input type="text" id="url-input" placeholder="esim. yritys.fi" autocomplete="url" required>
       <button type="submit" class="btn-primary" id="check-btn">Analysoi</button>
     </form>
+    <p class="input-meta">Maksuton · Tulokset heti · Kuusi osa-aluetta</p>
   </div>
 </section>
 
-<div class="loading" id="loading"><div class="spinner"></div><p>Analysoidaan sivustoa...</p></div>
+<section class="intro" id="intro">
+  <div class="wrap">
+    <p class="intro-title">Mitä analyysi kertoo</p>
+    <div class="intro-grid" id="intro-grid"></div>
+  </div>
+</section>
+
+<div class="loading" id="loading"><div class="spinner"></div><p>Analysoidaan sivustoa – tämä vie yleensä muutaman sekunnin.</p></div>
 <div class="error-msg" id="error"></div>
 
 <section class="results-preview" id="results-preview">
@@ -290,18 +310,18 @@ footer a{color:var(--turq-dark)}
   <div class="blurred-preview" id="blurred-preview"></div>
   <div class="gate-overlay">
     <div class="gate-card">
-      <h3>Näe <em>täydet tulokset</em></h3>
-      <p class="gate-sub">Tarkka raportti, kehitysehdotukset ja konkreettiset korjausohjeet — suoraan sähköpostiisi.</p>
+      <h3>Avaa <em>täysi raportti</em></h3>
+      <p class="gate-sub">Näet jokaisen tarkistuksen tuloksen, selityksen ja korjausohjeen. Lähetämme raportin myös sähköpostiisi.</p>
       <form id="email-form">
         <input type="email" id="email-input" placeholder="sähköpostiosoitteesi" required>
         <input type="tel" id="phone-input" placeholder="puhelinnumero (vapaaehtoinen)">
         <div class="checkbox-row">
-          <input type="checkbox" id="newsletter-check" checked>
-          <label for="newsletter-check">Haluan saada myös vinkkejä näkyvyyden parantamiseen</label>
+          <input type="checkbox" id="newsletter-check">
+          <label for="newsletter-check">Haluan myös SEO Salesin uutiskirjeen: ajankohtaisia näkemyksiä näkyvyydestä, myynnistä ja kasvusta.</label>
         </div>
         <button type="submit" class="btn-gate" id="unlock-btn">Avaa raportti</button>
       </form>
-      <p class="gate-note">Ei spämmiä. Voit peruuttaa milloin tahansa.</p>
+      <p class="gate-note">Käytämme osoitetta vain raportin ja siihen liittyvien viestien lähettämiseen.</p>
     </div>
   </div>
 </div>
@@ -312,12 +332,12 @@ footer a{color:var(--turq-dark)}
 
 <section class="cta-band" id="cta-band">
   <div class="wrap">
-    <h2>Käydään yhdessä läpi, miten <em>näkyvyys muuttuu kasvuksi</em></h2>
+    <h2>Käydään yhdessä läpi, miten <em>näkyvyydestä tulee myyntiä</em></h2>
     <div class="cta-body">
       <div class="cta-summary" id="cta-summary"></div>
-      <p>Tämä analyysi kattaa perusteet. Tapaamisessa pääsemme syvemmälle — käymme läpi juuri teidän yritykselle tärkeimmät kehityskohteet ja rakennamme suunnitelman.</p>
+      <p>Analyysi näyttää lähtötilanteen. Keskustelussa katsomme, mitkä korjaukset tuovat teidän yritykselle eniten asiakkaita ja missä järjestyksessä ne kannattaa tehdä.</p>
     </div>
-    <a href="https://seosales.fi/yhteys.html" class="btn-cta" target="_blank" rel="noopener">Varaa maksuton tapaaminen</a>
+    <a href="https://seosales.fi/yhteys.html" class="btn-cta" target="_blank" rel="noopener">Varaa maksuton keskustelu</a>
   </div>
 </section>
 
@@ -326,22 +346,53 @@ footer a{color:var(--turq-dark)}
 </footer>
 
 <script>
-const catInfo = {
-  seo: 'Hakukonenäkyvyyden perusteet: title-tagi, meta description, H1-otsikko, canonical-URL ja sisäiset linkit. Nämä vaikuttavat suoraan siihen, miten Google ymmärtää ja sijoittaa sivustosi.',
-  technical: 'Tekniset perusvaatimukset: HTTPS-suojaus, mobiilioptimointi, kieliasetus, indeksointilupa ja merkistökoodaus. Puutteet voivat estää sivuston näkymisen hakutuloksissa.',
-  content: 'Sisällön laatu ja rakenne: tekstin määrä, otsikkohierarkia ja kuvien alt-tekstit. Laadukas, hyvin jäsennelty sisältö parantaa sekä käyttäjäkokemusta että hakukonenäkyvyyttä.',
-  social: 'Jakamisnäkyvyys: Open Graph -tagit, Twitter Card -tagit ja favicon. Nämä määrittävät miltä sivustosi näyttää kun joku jakaa sen somessa tai viestipalvelussa.',
-  ai: 'Tekoälynäkyvyys: rakenteellinen data (JSON-LD), kysymysmuotoiset otsikot, FAQ-schema ja tekoälybottien pääsy. Nämä vaikuttavat siihen, näkyykö sivustosi ChatGPT:n, Geminin ja muiden tekoälyhakujen vastauksissa.',
-  keywords: 'Tuoko sivustosi oikeita asiakkaita vai satunnaisia kävijöitä? Analysoimme, onko sisältö kohdistettu oikeille hakijoille, houkutteleeko se vahingossa väärää yleisöä ja ohjaako se kävijöitä yhteydenottoon.'
+// Kategoriat: kysymys kertoo hyödyn, info kertoo mitä tarkistetaan ja miksi.
+const CATS = {
+  seo: {
+    label: 'Hakukoneet',
+    question: 'Löytääkö Google sivustosi, ja houkutteleeko hakutulos klikkaamaan?',
+    info: 'Tarkistamme sivun otsikon, hakutuloksessa näkyvän kuvauksen, pääotsikon, ensisijaisen osoitteen ja sisäiset linkit.',
+    why: 'Hakutulos on usein ensimmäinen kosketus yritykseen. Se ratkaisee, klikkaako hakija juuri teitä.'
+  },
+  technical: {
+    label: 'Tekniikka',
+    question: 'Toimiiko sivusto nopeasti ja luotettavasti kaikilla laitteilla?',
+    info: 'Tarkistamme suojatun yhteyden, mobiilinäkymän, kieliasetuksen, indeksointiluvan, palvelimen vasteajan, robots.txt-tiedoston ja sivukartan.',
+    why: 'Tekniset puutteet voivat estää hyvänkin sisällön näkymisen ja karkottaa kävijän ennen kuin sivu latautuu.'
+  },
+  content: {
+    label: 'Sisältö',
+    question: 'Onko sisältöä riittävästi, ja onko se selkeästi jäsennelty?',
+    info: 'Tarkistamme tekstin määrän, otsikkorakenteen ja kuvien vaihtoehtoiset tekstit.',
+    why: 'Selkeästi jäsennelty sisältö auttaa sekä kävijää että hakukonetta ymmärtämään nopeasti, mitä tarjoatte ja kenelle.'
+  },
+  social: {
+    label: 'Somenäkyvyys',
+    question: 'Miltä sivusto näyttää, kun joku jakaa sen LinkedInissä tai viestisovelluksessa?',
+    info: 'Tarkistamme Open Graph- ja X-kortit sekä sivuston kuvakkeen.',
+    why: 'Hyvin määritelty linkki näkyy jaettaessa kuvana ja otsikkona, ei pelkkänä osoitteena.'
+  },
+  ai: {
+    label: 'Tekoälyhaut',
+    question: 'Voivatko ChatGPT ja muut tekoälyhaut suositella teitä?',
+    info: 'Tarkistamme rakenteellisen datan, kysymysmuotoiset otsikot, UKK-merkinnät, tekoälybottien pääsyn ja sen, näkyykö sisältö ilman JavaScriptiä.',
+    why: 'Yhä useampi hakee tietoa ChatGPT:n, Geminin ja Perplexityn kautta. Tekoälyhakuihin optimointia kutsutaan myös nimellä GEO (Generative Engine Optimization).'
+  },
+  keywords: {
+    label: 'Avainsanat',
+    question: 'Tuoko sivusto ostavia asiakkaita vai satunnaisia kävijöitä?',
+    info: 'Tarkistamme, vastaavatko otsikko ja kuvaus sivun sisältöä, houkutteleeko teksti vahingossa vääriä kävijöitä, onko viesti selkeä ja ohjaako sivu kävijää yhteydenottoon.',
+    why: 'Näkyvyys tuottaa arvoa vasta, kun se tuo oikeita asiakkaita.'
+  }
 };
 
 const catCtaTexts = {
-  seo: 'Miksi näkyvyys jää alhaiseksi?',
-  technical: 'Tekniset puutteet hidastavat',
-  content: 'Sisältöä kannattaa vahvistaa',
-  social: 'Jakamisnäkyvyys puuttuu',
-  ai: 'Tekoälyhaut eivät löydä sivustoa',
-  keywords: 'Sivusto ei tavoita oikeita asiakkaita'
+  seo: 'Näin parannat hakunäkyvyyttä',
+  technical: 'Katso korjattavat kohdat',
+  content: 'Näin vahvistat sisältöä',
+  social: 'Näin jaot erottuvat',
+  ai: 'Näin tekoälyhaut löytävät teidät',
+  keywords: 'Näin tavoitat oikeat asiakkaat'
 };
 
 let currentData = null;
@@ -426,6 +477,7 @@ $('email-form').addEventListener('submit', async (e) => {
 });
 
 function renderPreview(data) {
+  $('intro').style.display = 'none';
   $('checked-url').innerHTML = 'Tarkistettu: <strong>' + esc(data.url) + '</strong>';
 
   const circ = 2 * Math.PI * 68;
@@ -464,7 +516,7 @@ function renderPreview(data) {
 
     let cardHtml = '<div class="cat-card">' +
       '<span class="info-btn" aria-label="Lisätietoja">?</span>' +
-      '<span class="info-tooltip">' + esc(catInfo[c.id] || c.description) + '</span>' +
+      '<span class="info-tooltip">' + esc(CATS[c.id] ? CATS[c.id].info + ' ' + CATS[c.id].why : c.description) + '</span>' +
       '<div class="cat-label">' + esc(c.label) + '</div>' +
       '<div class="cat-score" style="color:' + col + '">' + c.score + '</div>' +
       '<div class="cat-bar"><span style="width:' + c.score + '%;background:' + col + '"></span></div>' +
@@ -500,6 +552,15 @@ function renderPreview(data) {
   $('results-preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function renderIntro() {
+  $('intro-grid').innerHTML = Object.values(CATS).map(c =>
+    '<div class="intro-item"><div class="cat-label">' + esc(c.label) + '</div>' +
+    '<h3>' + esc(c.question) + '</h3>' +
+    '<p>' + esc(c.why) + '</p></div>'
+  ).join('');
+}
+renderIntro();
+
 function buildBlurredPreview(data) {
   const wrap = $('blurred-preview');
   let html = '<div class="wrap">';
@@ -525,7 +586,7 @@ function renderFullResults(data) {
         '<h3>' + esc(c.label) + '</h3>' +
         '<span class="info-wrap">' +
           '<span class="info-btn-section" aria-label="Lisätietoja">?</span>' +
-          '<span class="section-tooltip" data-for="' + c.id + '">' + esc(catInfo[c.id] || c.description) + '</span>' +
+          '<span class="section-tooltip" data-for="' + c.id + '">' + esc(CATS[c.id] ? CATS[c.id].info + ' ' + CATS[c.id].why : c.description) + '</span>' +
         '</span>' +
         '<span class="cat-section-score" style="color:' + col + '">' + c.score + '/100</span>' +
       '</div>' +
