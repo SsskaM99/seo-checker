@@ -604,20 +604,33 @@ function analyzeContent($, text) {
     score += 15;
   }
 
-  const images = $('img');
-  const noAlt = images.filter((_, el) => {
+  // Seurantapikselit eivät ole kuvia. Tyhjä alt="" (tai role="presentation" / aria-hidden)
+  // on oikea tapa merkitä koristekuva, joten vain kokonaan puuttuva alt on puute.
+  const images = $('img').filter((_, el) => !['0', '1'].includes($(el).attr('width')) && !['0', '1'].includes($(el).attr('height')));
+  const isDecorative = el => {
     const alt = $(el).attr('alt');
-    return alt === undefined || alt.trim() === '';
-  });
+    return (alt !== undefined && alt.trim() === '') || $(el).attr('role') === 'presentation' || $(el).attr('role') === 'none' || $(el).attr('aria-hidden') === 'true';
+  };
+  const decorative = images.filter((_, el) => isDecorative(el)).length;
+  const contentImages = images.length - decorative;
+  const noAlt = images.filter((_, el) => !isDecorative(el) && $(el).attr('alt') === undefined).length;
+  const decoNote = decorative ? ` ${decorative} koristekuvaa on merkitty oikein tyhjällä alt-tekstillä.` : '';
   max += 15;
   if (images.length === 0) {
     checks.push(ck('Kuvien alt-tekstit', 'warn', 'Sivulla ei ole kuvia.', 'Lisää sivulle kuvia, jotka tukevat viestiä, esimerkiksi tiimistä, työstä tai tuotteista, ja kirjoita jokaiselle kuvaava alt-teksti.'));
     score += 7;
-  } else if (noAlt.length > 0) {
-    checks.push(ck('Kuvien alt-tekstit', 'fail', `${noAlt.length}/${images.length} kuvalta puuttuu alt-teksti.`, 'Kirjoita jokaiselle kuvalle lyhyt alt-teksti, joka kertoo, mitä kuvassa on. Alt-teksti kertoo kuvan sisällön hakukoneille ja ruudunlukijaa käyttäville.'));
-    score += Math.round(15 * (1 - noAlt.length / images.length));
+  } else if (noAlt > 0) {
+    checks.push(ck('Kuvien alt-tekstit', 'fail', `${noAlt}/${contentImages} kuvalta puuttuu alt-teksti.${decoNote}`, 'Kirjoita jokaiselle sisältökuvalle lyhyt alt-teksti, joka kertoo, mitä kuvassa on. Pelkästään koristeelliset kuvat merkitään tyhjällä alt-tekstillä (alt=""). Alt-teksti kertoo kuvan sisällön hakukoneille ja ruudunlukijaa käyttäville.'));
+    score += Math.round(15 * (1 - noAlt / contentImages));
+  } else if (decorative >= 5 && decorative / images.length > 0.5) {
+    // Moni julkaisujärjestelmä (esim. WordPress) tulostaa tyhjän alt-tekstin, jos sitä ei ole kirjoitettu.
+    checks.push(ck('Kuvien alt-tekstit', 'warn', `${decorative}/${images.length} kuvaa on merkitty koristekuviksi tyhjällä alt-tekstillä.`, 'Tarkista, ovatko kuvat oikeasti koristeellisia. Moni julkaisujärjestelmä, kuten WordPress, jättää alt-tekstin tyhjäksi, jos sitä ei ole kirjoitettu. Kirjoita sisältökuville lyhyt alt-teksti, joka kertoo, mitä kuvassa on.'));
+    score += 10;
+  } else if (contentImages === 0) {
+    checks.push(ck('Kuvien alt-tekstit', 'pass', `Sivun ${decorative} kuvaa on merkitty koristekuviksi tyhjällä alt-tekstillä.`));
+    score += 15;
   } else {
-    checks.push(ck('Kuvien alt-tekstit', 'pass', `Kaikilla ${images.length} kuvalla on alt-teksti.`));
+    checks.push(ck('Kuvien alt-tekstit', 'pass', `Kaikilla ${contentImages} sisältökuvalla on alt-teksti.${decoNote}`));
     score += 15;
   }
 
