@@ -414,7 +414,7 @@ const CATS = {
   ai: {
     label: 'Tekoälyhaut',
     question: 'Voivatko ChatGPT ja muut tekoälyhaut suositella teitä?',
-    info: 'Tarkistamme rakenteellisen datan, kysymysmuotoiset otsikot, UKK-merkinnät, tekoälybottien pääsyn ja sen, näkyykö sisältö ilman JavaScriptiä.',
+    info: 'Tarkistamme rakenteellisen datan, kysymysmuotoiset otsikot, UKK-merkinnät, tekoälybottien pääsyn, llms.txt-tiedoston, yritystiedot ja sen, näkyykö sisältö ilman JavaScriptiä.',
     why: 'Yhä useampi hakee tietoa ChatGPT:n, Geminin ja Perplexityn kautta. Tekoälyhakuihin optimointia kutsutaan myös nimellä GEO (Generative Engine Optimization).'
   },
   keywords: {
@@ -508,6 +508,7 @@ $('email-form').addEventListener('submit', async (e) => {
         url: currentData?.url,
         score: currentData?.score,
         categories: currentData?.categories,
+        platform: currentData?.platform,
         summary: currentData?.summary,
       }),
     });
@@ -520,7 +521,7 @@ $('email-form').addEventListener('submit', async (e) => {
 
 function renderPreview(data) {
   $('intro').style.display = 'none';
-  $('checked-url').innerHTML = '<strong>' + esc(data.url) + '</strong> · ' + new Date().toLocaleDateString('fi-FI');
+  $('checked-url').innerHTML = '<strong>' + esc(data.url) + '</strong> · ' + new Date().toLocaleDateString('fi-FI') + (data.platform ? ' · ' + esc(data.platform) : '');
 
   const circ = 2 * Math.PI * 68;
   const circle = $('score-circle');

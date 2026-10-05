@@ -223,6 +223,9 @@ async function fetchPage(input) {
     finalUrl,
     status: res.status,
     responseTimeMs,
+    // Julkaisualustan tunnistusta varten.
+    headers: Object.fromEntries(['server', 'x-powered-by', 'x-generator', 'x-wix-request-id', 'x-shopify-stage', 'x-drupal-cache', 'x-hubspot-correlation-id']
+      .map(h => [h, res.headers.get(h)]).filter(([, v]) => v)),
   };
 }
 
@@ -282,7 +285,12 @@ function parseRobots(text) {
 
 async function fetchSiteFiles(finalUrl) {
   const origin = new URL(finalUrl).origin;
-  const robotsRes = await fetchText(`${origin}/robots.txt`);
+  const [robotsRes, llmsRes] = await Promise.all([
+    fetchText(`${origin}/robots.txt`),
+    fetchText(`${origin}/llms.txt`, 64 * 1024),
+  ]);
+  // llms.txt: Markdown-tiivistelmä tekoälyille. Puuttuvan tiedoston tilalle palautettu HTML-sivu ei kelpaa.
+  const llmsOk = !!llmsRes && !/^\s*</.test(llmsRes.text) && !/text\/html/i.test(llmsRes.contentType) && llmsRes.text.trim().length >= 30;
   // Osa palvelimista palauttaa puuttuvan tiedoston tilalle HTML-sivun — sitä ei lasketa.
   const robotsValid = !!robotsRes && !/^\s*</.test(robotsRes.text) && !/text\/html/i.test(robotsRes.contentType);
   const robots = robotsValid ? parseRobots(robotsRes.text) : null;
@@ -296,7 +304,7 @@ async function fetchSiteFiles(finalUrl) {
     if (r && /<(urlset|sitemapindex)[\s>]/i.test(r.text)) { sitemapOk = true; break; }
   }
 
-  return { robotsOk: robotsValid, robots, sitemapOk };
+  return { robotsOk: robotsValid, robots, sitemapOk, llmsOk };
 }
 
 module.exports = { fetchPage, fetchSiteFiles, FetchError, AI_BOTS, parseRobots, isPrivateIp };

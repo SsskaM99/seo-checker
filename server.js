@@ -52,7 +52,7 @@ function rateLimited(ip) {
 async function runAnalysis(input) {
   const page = await fetchPage(input);
   const siteFiles = await fetchSiteFiles(page.finalUrl);
-  return analyze(page.html, page.finalUrl, { responseTimeMs: page.responseTimeMs, ...siteFiles });
+  return analyze(page.html, page.finalUrl, { responseTimeMs: page.responseTimeMs, headers: page.headers, ...siteFiles });
 }
 
 app.post('/api/check', async (req, res) => {
@@ -66,6 +66,7 @@ app.post('/api/check', async (req, res) => {
     saveAnalysis({
       url: results.url,
       score: results.score,
+      platform: results.platform,
       categories: results.categories.map(c => ({ id: c.id, score: c.score })),
       timestamp: new Date().toISOString(),
     });
@@ -110,7 +111,7 @@ function hostOf(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
 }
 
-function buildReportHTML({ url, score, summary, categories }) {
+function buildReportHTML({ url, score, summary, categories, platform }) {
   const date = new Date().toLocaleDateString('fi-FI');
   const host = hostOf(url);
   const cats = Array.isArray(categories) ? categories : [];
@@ -176,7 +177,7 @@ function buildReportHTML({ url, score, summary, categories }) {
   <tr><td style="background:#17161C;padding:32px 40px 36px;text-align:center">
     <div style="font-size:18px;font-weight:700;color:#FFFFFF;letter-spacing:-0.02em">SEO Sales</div>
     <div style="font-size:11px;color:#25D9C6;text-transform:uppercase;letter-spacing:0.12em;margin-top:20px">N&auml;kyvyysanalyysi</div>
-    <div style="font-size:14px;color:#FFFFFF;margin-top:8px">${esc(url)} <span style="color:#C6C2D1">&middot; ${date}</span></div>
+    <div style="font-size:14px;color:#FFFFFF;margin-top:8px">${esc(url)} <span style="color:#C6C2D1">&middot; ${date}${platform ? ` &middot; ${esc(platform)}` : ''}</span></div>
     <div style="display:inline-block;width:100px;height:100px;border-radius:50%;border:6px solid ${scoreHex(score)};text-align:center;line-height:100px;margin-top:22px">
       <span style="font-size:36px;font-weight:700;color:#FFFFFF">${score}</span>
     </div>
@@ -229,7 +230,7 @@ function buildReportHTML({ url, score, summary, categories }) {
 }
 
 app.post('/api/lead', (req, res) => {
-  const { email, phone, newsletter, url, score, categories, summary } = req.body;
+  const { email, phone, newsletter, url, score, categories, summary, platform } = req.body;
   if (!email || !email.includes('@')) return res.status(400).json({ error: 'Virheellinen sähköposti' });
 
   const lead = {
@@ -243,7 +244,7 @@ app.post('/api/lead', (req, res) => {
   saveLead(lead);
   console.log(`Uusi liidi: ${lead.email} | ${lead.url} | newsletter: ${lead.newsletter}`);
 
-  const reportHtml = buildReportHTML({ url: lead.url, score: lead.score, summary, categories });
+  const reportHtml = buildReportHTML({ url: lead.url, score: lead.score, summary, categories, platform: typeof platform === 'string' ? platform.slice(0, 40) : null });
 
   const RESEND_KEY = process.env.RESEND_KEY || '';
   const FROM_EMAIL = process.env.FROM_EMAIL || 'raportti@seosales.fi';
@@ -356,7 +357,7 @@ app.get(['/api/report-preview', '/api/followup-preview'], async (req, res) => {
     const data = await runAnalysis(testUrl);
     const html = req.path.endsWith('followup-preview')
       ? buildFollowupHTML({ url: data.url, score: data.score, categories: data.categories })
-      : buildReportHTML({ url: data.url, score: data.score, summary: data.summary, categories: data.categories });
+      : buildReportHTML({ url: data.url, score: data.score, summary: data.summary, categories: data.categories, platform: data.platform });
     res.send(html);
   } catch (err) {
     res.status(500).send('Virhe: ' + err.message);
@@ -373,14 +374,24 @@ function analyze(html, url, extra = {}) {
   const social = analyzeSocial($);
   const ai = analyzeAI($, text, extra);
   const lang = $('html').attr('lang') || '';
-  const keywords = analyzeKeywords($, lang, text);
+  const keywords = analyzeKeywords($, lang, text, new URL(url).hostname.replace(/^www\./, ''));
 
   const categories = [seo, technical, content, social, ai, keywords];
+
+  // Alustakohtaiset vinkit vain oikealle alustalle.
+  const platform = detectPlatform($, html, extra.headers || {});
+  if (platform !== 'WordPress') {
+    categories.forEach(c => c.checks.forEach(ch => {
+      if (ch.tip) ch.tip = ch.tip.replace(/\s*WordPressissä[^.]*\./g, '');
+    }));
+  }
+
   const totalWeight = categories.reduce((s, c) => s + c.weight, 0);
   const overallScore = Math.round(categories.reduce((s, c) => s + c.score * c.weight, 0) / totalWeight);
 
   return {
     url,
+    platform,
     score: overallScore,
     categories,
     summary: makeSummary(overallScore),
@@ -392,11 +403,34 @@ function analyze(html, url, extra = {}) {
   };
 }
 
+// Julkaisualusta sivun koodista ja vastauksen otsakkeista. Järjestys ratkaisee: ensimmäinen osuma voittaa.
+const PLATFORMS = [
+  ['WordPress', (h, gen) => /\/wp-content\/|\/wp-includes\//.test(h) || /wordpress/i.test(gen)],
+  ['Wix', (h, gen, H) => /static\.wixstatic\.com/.test(h) || !!H['x-wix-request-id'] || /wix\.com/i.test(gen)],
+  ['Shopify', (h, gen, H) => /cdn\.shopify\.com/.test(h) || !!H['x-shopify-stage']],
+  ['Squarespace', h => /static1\.squarespace\.com|squarespace-cdn\.com/.test(h)],
+  ['Webflow', (h, gen) => /data-wf-site=/.test(h) || /webflow/i.test(gen)],
+  ['Framer', (h, gen) => /framerusercontent\.com/.test(h) || /framer/i.test(gen)],
+  ['HubSpot', (h, gen, H) => /hubspot/i.test(gen) || !!H['x-hubspot-correlation-id']],
+  ['Drupal', (h, gen, H) => /drupal/i.test(gen) || !!H['x-drupal-cache']],
+  ['Joomla', (h, gen) => /joomla/i.test(gen)],
+  ['Next.js', h => /\/_next\/static\//.test(h)],
+  ['Nuxt', h => /\/_nuxt\//.test(h)],
+  ['Gatsby', h => /id="___gatsby"/.test(h)],
+  ['GitHub Pages', (h, gen, H) => /^github\.com$/i.test(H.server || '')],
+];
+
+function detectPlatform($, html, headers) {
+  const gen = $('meta[name="generator"]').attr('content') || headers['x-generator'] || headers['x-powered-by'] || '';
+  const hit = PLATFORMS.find(([, test]) => test(html, gen, headers));
+  return hit ? hit[0] : null;
+}
+
 // Kävijälle näkyvä teksti: skriptit, tyylit ja upotukset eivät ole sisältöä.
 function visibleText($) {
   const body = $('body').clone();
   body.find('script,style,noscript,template,svg,iframe').remove();
-  return body.text().replace(/\s+/g, ' ').trim();
+  return body.text().replace(/­/g, '').replace(/\s+/g, ' ').trim();
 }
 
 function countWords(text) {
@@ -695,8 +729,9 @@ function analyzeAI($, text, extra = {}) {
     score += 25;
   }
 
+  // Myös avattavat UKK-kysymykset (summary) ja määritelmälistat (dt) ovat kysymysotsikoita.
   const headingTexts = [];
-  $('h2,h3,h4').each((_, el) => headingTexts.push($(el).text().trim()));
+  $('h2,h3,h4,summary,dt').each((_, el) => headingTexts.push($(el).text().replace(/\s+/g, ' ').trim()));
   const questionHeadings = headingTexts.filter(t => /\?$/.test(t) || /^(miksi|miten|mitä|milloin|kuinka|what|how|why|when)/i.test(t));
   max += 25;
   if (questionHeadings.length === 0) {
@@ -747,10 +782,49 @@ function analyzeAI($, text, extra = {}) {
     score += 20;
   }
 
+  // llms.txt: uusi, vielä vakiintumaton käytäntö, joten puute on huomautus eikä virhe.
+  max += 10;
+  if (extra.llmsOk) {
+    checks.push(ck('llms.txt', 'pass', 'llms.txt-tiedosto löytyi — tekoälyillä on valmis tiivistelmä yrityksestä.'));
+    score += 10;
+  } else {
+    checks.push(ck('llms.txt', 'warn', 'llms.txt-tiedostoa ei löytynyt.', 'Lisää sivuston juureen llms.txt-tiedosto: lyhyt Markdown-muotoinen kuvaus yrityksestä, palveluista, yhteystiedoista ja tärkeimmistä sivuista. Käytäntö on vielä uusi, mutta se on helppo tapa kertoa tekoälyille, keitä olette ja mitä teette.'));
+  }
+
+  // Yritystiedot: Google ja tekoälyhaut suosittelevat helpommin yritystä, jonka tiedot ovat yksiselitteiset.
+  const visible = {
+    puhelin: $('a[href^="tel:"]').length > 0 || /(?:\+358|(?<!\d)0)\s?\d{1,2}[\s-]?\d{3,4}[\s-]?\d{3,4}(?!\d)/.test(text),
+    'sähköposti': $('a[href^="mailto:"]').length > 0 || /[\w.+-]+@[\w-]+\.[a-z]{2,}/i.test(text),
+    osoite: /(?<!\d)\d{5}\s+\p{Lu}\p{Ll}+/u.test(text),
+    'Y-tunnus': /(?<!\d)\d{7}-\d(?!\d)/.test(text),
+  };
+  const foundInfo = Object.keys(visible).filter(k => visible[k]);
+  const missingInfo = Object.keys(visible).filter(k => !visible[k]);
+  const ldNodes = [];
+  const walk = n => {
+    if (Array.isArray(n)) return n.forEach(walk);
+    if (n && typeof n === 'object') { ldNodes.push(n); Object.values(n).forEach(walk); }
+  };
+  jsonLd.each((_, el) => { try { walk(JSON.parse($(el).html())); } catch {} });
+  const orgSchema = ldNodes.some(n => n['@type'] && (n.telephone || n.address || n.contactPoint));
+  const listFi = arr => arr.length > 1 ? arr.slice(0, -1).join(', ') + ' ja ' + arr.at(-1) : arr[0];
+  max += 15;
+  score += Math.round(Math.min(foundInfo.length, 3) / 3 * 10) + (orgSchema ? 5 : 0);
+  const infoTip = 'Näytä puhelinnumero, sähköposti, osoite ja Y-tunnus esimerkiksi sivun alaosassa ja lisää samat tiedot Organization- tai LocalBusiness-merkintään. Pidä tiedot samoina myös Google-yritysprofiilissa, Fonectassa ja YTJ:ssä.';
+  // Vain etusivu tarkistetaan, ja yhteystiedot ovat usein omalla sivullaan: puute on huomautus, ei virhe.
+  if ((foundInfo.length >= 3 && orgSchema) || foundInfo.length === 4) {
+    checks.push(ck('Yritystiedot', 'pass', `Yhteystiedot (${listFi(foundInfo)}) löytyvät sivulta${orgSchema ? ' ja rakenteellisesta datasta' : ''}.`));
+  } else if (foundInfo.length === 0 && !orgSchema) {
+    checks.push(ck('Yritystiedot', 'warn', 'Etusivulta ei löytynyt yhteystietoja: puhelinta, sähköpostia, osoitetta tai Y-tunnusta.', infoTip));
+  } else {
+    const missingParts = [...missingInfo, ...(orgSchema ? [] : ['yhteystiedot rakenteellisessa datassa'])];
+    checks.push(ck('Yritystiedot', 'warn', `${foundInfo.length ? `Sivulta löytyy ${listFi(foundInfo)}. ` : ''}Puuttuu: ${listFi(missingParts)}.`, infoTip));
+  }
+
   return cat('ai', 'Tekoälyhaut', 'Voivatko ChatGPT ja muut tekoälyhaut suositella teitä?', score, max, checks, 2);
 }
 
-function analyzeKeywords($, pageLang, text) {
+function analyzeKeywords($, pageLang, text, siteHost = '') {
   const checks = [];
   let score = 0, max = 0;
 
@@ -774,9 +848,9 @@ function analyzeKeywords($, pageLang, text) {
   const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
   const topKeywords = sorted.slice(0, 20).map(([w]) => w);
 
-  const title = ($('title').text() || '').toLowerCase();
+  const title = ($('title').text() || '').replace(/­/g, '').toLowerCase();
   const desc = ($('meta[name="description"]').attr('content') || '').toLowerCase();
-  const h1 = $('h1').first().text().toLowerCase();
+  const h1 = $('h1').first().text().replace(/­/g, '').toLowerCase();
   const metaText = `${title} ${desc} ${h1}`;
 
   // --- 1. Hakutuloksen otsikko ---
@@ -808,20 +882,28 @@ function analyzeKeywords($, pageLang, text) {
   });
 
   const TRAP_PATTERNS = [
-    { terms: ['ilmainen', 'ilmaiseksi', 'ilmaista', 'maksuton', 'free'], label: '"ilmainen"-hakusanat', reason: 'Ilmaista etsivät harvoin ostavat — sivusto voi kerätä väärää yleisöä.', fix: 'Käytä "ilmainen"-sanoja vain siellä, missä tarjoatte oikeasti jotain maksutonta, ja kerro muualla palvelun arvosta ja tuloksista.', skipIf: ['ecommerce'] },
-    { terms: ['työ', 'työpaikka', 'rekry', 'avoimet', 'palkka', 'ura', 'työnhaku'], label: 'työnhaku-hakusanat', reason: 'Työnhakijat löytävät sivuston, vaikka he eivät ole potentiaalisia asiakkaita.', fix: 'Kokoa rekrytointisisältö omalle urasivulleen, jotta etusivu ja palvelusivut puhuttelevat asiakkaita.', skipIf: ['recruitment'] },
-    { terms: ['koulutus', 'kurssi', 'opiskelu', 'tutkinto', 'oppiminen', 'oppia'], label: 'opiskelu-hakusanat', reason: 'Opiskelijat ja tiedonhakijat harvoin ostavat palveluita.', fix: 'Jos koulutus ei ole palvelunne, vähennä opiskeluun liittyviä sanoja palvelusivuilta ja kerro, mitä asiakas saa.', skipIf: ['education'] },
-    { terms: ['kokemuksia', 'arvostelu', 'arvostelut', 'review', 'vertailu'], label: 'vertailu-hakusanat', reason: 'Vertailuhakijat ovat vasta tiedonhakuvaiheessa eivätkä yleensä ota yhteyttä.', fix: 'Kerro vertailujen ja arvostelujen yhteydessä, miksi asiakkaat valitsevat juuri teidät, ja lisää selkeä toimintakehotus.', skipIf: ['review'] },
-    { terms: ['ohje', 'opas', 'tutorial', 'miten', 'kuinka'], label: 'tee-se-itse -hakusanat', reason: 'Itse tekemisestä kiinnostuneet eivät yleensä osta palvelua.', fix: 'Pidä ohjeet ja oppaat omana sisältönään ja ohjaa niistä palveluun: kerro, milloin apua kannattaa pyytää.', skipIf: ['education', 'media'] },
+    // Termit ovat sanan alkuja (taivutusmuodot mukana); '$' = koko sana. "Maksuton" ei ole mukana,
+    // koska B2B-sivuilla se on tavallinen toimintakehotus (maksuton keskustelu, maksuton arvio).
+    { terms: ['ilmai', 'free$'], label: '"ilmainen"-hakusanat', reason: 'Ilmaista etsivät harvoin ostavat — sivusto voi kerätä väärää yleisöä.', fix: 'Käytä "ilmainen"-sanoja vain siellä, missä tarjoatte oikeasti jotain maksutonta, ja kerro muualla palvelun arvosta ja tuloksista.', skipIf: ['ecommerce'] },
+    { terms: ['työpaik', 'työnhak', 'työhakemu', 'rekry', 'avoimet työ', 'palkkau', 'palkka$', 'palkkaa$', 'uramahdollisu', 'urapolk', 'urakehity'], label: 'työnhaku-hakusanat', reason: 'Työnhakijat löytävät sivuston, vaikka he eivät ole potentiaalisia asiakkaita.', fix: 'Kokoa rekrytointisisältö omalle urasivulleen, jotta etusivu ja palvelusivut puhuttelevat asiakkaita.', skipIf: ['recruitment'] },
+    { terms: ['kurssi', 'opiskel', 'tutkinto', 'tutkinno', 'oppimi', 'oppia$'], label: 'opiskelu-hakusanat', reason: 'Opiskelijat ja tiedonhakijat harvoin ostavat palveluita.', fix: 'Jos koulutus ei ole palvelunne, vähennä opiskeluun liittyviä sanoja palvelusivuilta ja kerro, mitä asiakas saa.', skipIf: ['education'] },
+    { terms: ['kokemuksia$', 'arvostel', 'review', 'vertailu'], label: 'vertailu-hakusanat', reason: 'Vertailuhakijat ovat vasta tiedonhakuvaiheessa eivätkä yleensä ota yhteyttä.', fix: 'Kerro vertailujen ja arvostelujen yhteydessä, miksi asiakkaat valitsevat juuri teidät, ja lisää selkeä toimintakehotus.', skipIf: ['review'] },
+    { terms: ['ohje$', 'ohjeet$', 'ohjeita$', 'ohjeen$', 'ohjeiden$', 'opas$', 'oppaa', 'tutorial', 'tee itse', 'tee-se-itse', 'itse tehden'], label: 'tee-se-itse -hakusanat', reason: 'Itse tekemisestä kiinnostuneet eivät yleensä osta palvelua.', fix: 'Pidä ohjeet ja oppaat omana sisältönään ja ohjaa niistä palveluun: kerro, milloin apua kannattaa pyytää.', skipIf: ['education', 'media'] },
   ];
 
   max += 25;
   const foundTraps = [];
   TRAP_PATTERNS.forEach(pattern => {
     if (pattern.skipIf && pattern.skipIf.some(p => detectedPurpose.has(p))) return;
-    const found = pattern.terms.filter(t => bodyText.includes(t));
+    // Osuma vain sanan alusta: "ura" ei saa osua sanaan "seuraava" eikä "työ" sanaan "yhteistyö".
+    const counts = pattern.terms.map(t => {
+      const whole = t.endsWith('$');
+      const re = new RegExp('(?<![\\p{L}])' + t.replace('$', '') + (whole ? '(?![\\p{L}])' : ''), 'gu');
+      return (bodyText.match(re) || []).length;
+    });
+    const found = pattern.terms.filter((_, i) => counts[i] > 0);
     if (found.length > 0) {
-      const count = found.reduce((s, t) => s + (bodyText.split(t).length - 1), 0);
+      const count = counts.reduce((a, b) => a + b, 0);
       const ratio = count / totalTerms;
       if (count >= 5 && ratio >= 0.005) foundTraps.push({ ...pattern, found, count });
     }
@@ -840,13 +922,24 @@ function analyzeKeywords($, pageLang, text) {
   }
 
   // --- 3. Sisällön selkeys ---
+  // Toistuuko sivun pääaihe (otsikko ja pääotsikko) läpi tekstin? Teksti jaetaan 100 sanan jaksoihin
+  // ja lasketaan, monessako jaksossa pääaiheen sanat esiintyvät. Mittari ei riipu sivun pituudesta.
+  // Sanat verrataan neljän kirjaimen alun perusteella, jotta taivutusmuodot ja yhdyssanat osuvat (Vantaalla ~ Vantaa).
   max += 25;
-  const top5Concentration = sorted.slice(0, 5).reduce((s, [, c]) => s + c, 0) / Math.max(totalTerms, 1);
+  const stem = w => w.slice(0, 4);
+  const brandStems = new Set((siteHost.match(/[\p{L}]{4,}/gu) || []).map(stem));
+  const topicStems = new Set(((title + ' ' + h1).match(/[\p{L}]{4,}/gu) || [])
+    .filter(w => !FI_STOP.has(w)).map(stem).filter(st => !brandStems.has(st)));
+  const allWords = bodyText.match(/[\p{L}]+/gu) || [];
+  const chunks = [];
+  for (let i = 0; i < allWords.length; i += 100) chunks.push(allWords.slice(i, i + 100));
+  const coveredChunks = chunks.filter(ch => ch.some(w => w.length >= 4 && topicStems.has(stem(w)))).length;
+  const topicCoverage = topicStems.size && chunks.length ? coveredChunks / chunks.length : 0;
 
-  if (top5Concentration >= 0.08) {
+  if (topicCoverage >= 0.6) {
     checks.push(ck('Sisällön selkeys', 'pass', `Sivusto kertoo selkeästi yhdestä aiheesta — Google ymmärtää mistä on kyse.`));
     score += 25;
-  } else if (top5Concentration >= 0.04) {
+  } else if (topicCoverage >= 0.3) {
     checks.push(ck('Sisällön selkeys', 'warn', `Sivuston viesti hajoaa useaan suuntaan — Google ei ole varma, mistä sivu kertoo.`, 'Valitse sivulle 1–3 ydinteemaa ja rakenna otsikot ja tekstit niiden ympärille. Muut aiheet kannattaa siirtää omille sivuilleen.'));
     score += 12;
   } else {
