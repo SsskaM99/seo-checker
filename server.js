@@ -410,12 +410,12 @@ function analyzeSEO($, url) {
   const title = $('title').first().text().trim();
   max += 15;
   if (!title) {
-    checks.push(ck('Sivun otsikko (title)', 'fail', 'Sivulta puuttuu otsikko, joka näkyy hakutuloksessa ja selaimen välilehdellä.', 'Lisää sivulle <title>-otsikko. Se on hakukoneoptimoinnin tärkein yksittäinen elementti.'));
+    checks.push(ck('Sivun otsikko (title)', 'fail', 'Sivulta puuttuu otsikko, joka näkyy hakutuloksessa ja selaimen välilehdellä.', 'Lisää sivulle <title>-otsikko, jossa on tärkein palvelunne ja yrityksen nimi, esimerkiksi "Tilintarkastus Tampereella | Yritys Oy". Se on hakukoneelle tärkein yksittäinen tieto sivusta.'));
   } else if (title.length < 30) {
-    checks.push(ck('Sivun otsikko (title)', 'warn', `Otsikko on lyhyt (${title.length} merkkiä).`, 'Suositeltu pituus on 50–60 merkkiä.'));
+    checks.push(ck('Sivun otsikko (title)', 'warn', `Otsikko on lyhyt (${title.length} merkkiä).`, 'Lisää otsikkoon tärkein palvelu ja tarvittaessa paikkakunta. Tavoitepituus on 50–60 merkkiä.'));
     score += 7;
   } else if (title.length > 60) {
-    checks.push(ck('Sivun otsikko (title)', 'warn', `Otsikko on pitkä (${title.length} merkkiä).`, 'Google katkaisee yleensä yli 60 merkin otsikot, jolloin tärkein viesti voi jäädä näkymättä.'));
+    checks.push(ck('Sivun otsikko (title)', 'warn', `Otsikko on pitkä (${title.length} merkkiä).`, 'Lyhennä otsikko 50–60 merkkiin ja nosta tärkein asia alkuun. Google katkaisee pidemmät otsikot.'));
     score += 9;
   } else {
     checks.push(ck('Sivun otsikko (title)', 'pass', `Otsikko on sopivan mittainen (${title.length} merkkiä).`));
@@ -425,12 +425,12 @@ function analyzeSEO($, url) {
   const desc = $('meta[name="description"]').attr('content')?.trim() || '';
   max += 15;
   if (!desc) {
-    checks.push(ck('Hakutuloksen kuvaus', 'fail', 'Sivulta puuttuu kuvaus (meta description).', 'Kuvaus näkyy hakutuloksessa otsikon alla. Hyvin kirjoitettu kuvaus saa hakijan klikkaamaan juuri teitä.'));
+    checks.push(ck('Hakutuloksen kuvaus', 'fail', 'Sivulta puuttuu kuvaus (meta description).', 'Kirjoita sivulle 140–160 merkin kuvaus, joka kertoo, mitä tarjoatte ja miksi juuri teidät kannattaa valita. Se näkyy hakutuloksessa otsikon alla. WordPressissä kuvauksen voi lisätä esimerkiksi Yoast- tai Rank Math -lisäosalla.'));
   } else if (desc.length < 70) {
-    checks.push(ck('Hakutuloksen kuvaus', 'warn', `Kuvaus on lyhyt (${desc.length} merkkiä).`, 'Suositeltu pituus on 140–160 merkkiä.'));
+    checks.push(ck('Hakutuloksen kuvaus', 'warn', `Kuvaus on lyhyt (${desc.length} merkkiä).`, 'Täydennä kuvaus 140–160 merkkiin: kerro, mitä tarjoatte, kenelle ja mikä on seuraava askel.'));
     score += 7;
   } else if (desc.length > 160) {
-    checks.push(ck('Hakutuloksen kuvaus', 'warn', `Kuvaus on pitkä (${desc.length} merkkiä).`, 'Google katkaisee yleensä yli 160 merkin kuvaukset.'));
+    checks.push(ck('Hakutuloksen kuvaus', 'warn', `Kuvaus on pitkä (${desc.length} merkkiä).`, 'Lyhennä kuvaus 140–160 merkkiin ja sijoita tärkein viesti alkuun. Google katkaisee pidemmät kuvaukset.'));
     score += 9;
   } else {
     checks.push(ck('Hakutuloksen kuvaus', 'pass', `Kuvaus on sopivan mittainen (${desc.length} merkkiä).`));
@@ -440,9 +440,9 @@ function analyzeSEO($, url) {
   const h1s = $('h1');
   max += 10;
   if (h1s.length === 0) {
-    checks.push(ck('Pääotsikko (H1)', 'fail', 'Sivulta puuttuu pääotsikko.', 'Jokaisella sivulla tulisi olla täsmälleen yksi H1-otsikko.'));
+    checks.push(ck('Pääotsikko (H1)', 'fail', 'Sivulta puuttuu pääotsikko.', 'Lisää sivun alkuun yksi pääotsikko (H1), joka kertoo, mitä tarjoatte. Se auttaa sekä kävijää että hakukonetta ymmärtämään sivun aiheen.'));
   } else if (h1s.length > 1) {
-    checks.push(ck('Pääotsikko (H1)', 'warn', `Sivulla on ${h1s.length} pääotsikkoa.`, 'Yksi pääotsikko kertoo hakukoneelle selkeästi, mistä sivu kertoo.'));
+    checks.push(ck('Pääotsikko (H1)', 'warn', `Sivulla on ${h1s.length} pääotsikkoa.`, 'Jätä sivulle yksi H1-pääotsikko ja muuta muut H2-väliotsikoiksi. Yksi pääotsikko kertoo hakukoneelle selkeästi, mistä sivu kertoo.'));
     score += 5;
   } else {
     checks.push(ck('Pääotsikko (H1)', 'pass', `Pääotsikko löytyy: "${trunc(h1s.first().text().trim(), 60)}"`));
@@ -452,7 +452,7 @@ function analyzeSEO($, url) {
   const canonical = $('link[rel="canonical"]').attr('href') || '';
   max += 10;
   if (!canonical) {
-    checks.push(ck('Ensisijainen osoite (canonical)', 'warn', 'Sivulta puuttuu canonical-merkintä.', 'Merkintä kertoo Googlelle, mikä osoite on sivun virallinen versio, ja estää saman sisällön kilpailemasta itseään vastaan.'));
+    checks.push(ck('Ensisijainen osoite (canonical)', 'warn', 'Sivulta puuttuu canonical-merkintä.', 'Lisää sivun <head>-osaan merkintä <link rel="canonical" href="…">, joka osoittaa sivun viralliseen osoitteeseen. Se estää samaa sisältöä kilpailemasta itseään vastaan eri osoitteissa.'));
   } else {
     checks.push(ck('Ensisijainen osoite (canonical)', 'pass', 'Sivun virallinen osoite on merkitty.'));
     score += 10;
@@ -472,7 +472,7 @@ function analyzeSEO($, url) {
   });
   max += 10;
   if (internal === 0) {
-    checks.push(ck('Sisäiset linkit', 'warn', 'Sisäisiä linkkejä ei löytynyt.', 'Sisäiset linkit auttavat hakukoneita ymmärtämään sivuston rakennetta.'));
+    checks.push(ck('Sisäiset linkit', 'warn', 'Sisäisiä linkkejä ei löytynyt.', 'Linkitä etusivulta tärkeimmille palvelusivuille ja palvelusivuilta toisiinsa. Linkit auttavat hakukonetta ymmärtämään sivuston rakenteen ja kävijää löytämään eteenpäin.'));
   } else {
     checks.push(ck('Sisäiset linkit', 'pass', `${internal} sisäistä, ${external} ulkoista linkkiä.`));
     score += 10;
@@ -490,13 +490,13 @@ function analyzeTechnical($, url, extra = {}) {
     checks.push(ck('HTTPS', 'pass', 'Sivusto käyttää suojattua HTTPS-yhteyttä.'));
     score += 20;
   } else {
-    checks.push(ck('HTTPS', 'fail', 'Sivusto ei käytä HTTPS:ää.', 'HTTPS on ranking-signaali ja välttämätön käyttäjien luottamuksen kannalta.'));
+    checks.push(ck('HTTPS', 'fail', 'Sivusto ei käytä HTTPS:ää.', 'Ota käyttöön SSL-varmenne ja ohjaa kaikki http-osoitteet https-osoitteisiin. Useimmat palveluntarjoajat tarjoavat varmenteen maksutta. Ilman sitä selaimet varoittavat kävijöitä, ja Google sijoittaa sivun heikommin.'));
   }
 
   const viewport = $('meta[name="viewport"]').attr('content') || '';
   max += 15;
   if (!viewport) {
-    checks.push(ck('Mobiilioptimointi', 'fail', 'Viewport-metatagi puuttuu.', 'Lisää viewport-meta jotta sivusto skaalautuu mobiilissa.'));
+    checks.push(ck('Mobiilioptimointi', 'fail', 'Viewport-metatagi puuttuu.', 'Lisää sivun <head>-osaan <meta name="viewport" content="width=device-width, initial-scale=1">, jotta sivu skaalautuu puhelimen näytölle.'));
   } else {
     checks.push(ck('Mobiilioptimointi', 'pass', 'Viewport on asetettu mobiililaitteille.'));
     score += 15;
@@ -505,7 +505,7 @@ function analyzeTechnical($, url, extra = {}) {
   const lang = $('html').attr('lang') || '';
   max += 10;
   if (!lang) {
-    checks.push(ck('Kieliasetus', 'warn', 'HTML lang-attribuutti puuttuu.', 'Kieliasetus auttaa hakukoneita ja ruudunlukijoita.'));
+    checks.push(ck('Kieliasetus', 'warn', 'HTML lang-attribuutti puuttuu.', 'Lisää sivun <html>-tagiin kieli, esimerkiksi <html lang="fi">. Se auttaa hakukoneita näyttämään sivun oikeankielisille hakijoille ja ruudunlukijoita lukemaan tekstin oikein.'));
   } else {
     checks.push(ck('Kieliasetus', 'pass', `Kieli asetettu: "${lang}".`));
     score += 10;
@@ -514,7 +514,7 @@ function analyzeTechnical($, url, extra = {}) {
   const robotsMeta = $('meta[name="robots"]').attr('content') || '';
   max += 10;
   if (robotsMeta.includes('noindex')) {
-    checks.push(ck('Indeksointi', 'fail', 'Sivulla on noindex — hakukoneet eivät indeksoi sivua.', 'Poista noindex jos haluat sivun näkyvän hakutuloksissa.'));
+    checks.push(ck('Indeksointi', 'fail', 'Sivulla on noindex — hakukoneet eivät indeksoi sivua.', 'Poista sivulta noindex-merkintä, jos haluat sen näkyvän hakutuloksissa. WordPressissä tarkista myös kohta Asetukset → Lukeminen → Hakukoneiden näkyvyys.'));
   } else if (extra.robots?.blocksAll('Googlebot')) {
     checks.push(ck('Indeksointi', 'fail', 'Robots.txt estää Googlea lukemasta sivustoa.', 'Poista robots.txt-tiedostosta "Disallow: /", jos haluat sivuston näkyvän hakutuloksissa.'));
   } else {
@@ -525,7 +525,7 @@ function analyzeTechnical($, url, extra = {}) {
   const charset = $('meta[charset]').attr('charset') || $('meta[http-equiv="Content-Type"]').attr('content') || '';
   max += 10;
   if (!charset && !$('meta[charset]').length) {
-    checks.push(ck('Merkistökoodaus', 'warn', 'Charset-määrittelyä ei löytynyt.', 'Lisää <meta charset="UTF-8"> sivun alkuun.'));
+    checks.push(ck('Merkistökoodaus', 'warn', 'Charset-määrittelyä ei löytynyt.', 'Lisää sivun <head>-osan alkuun <meta charset="UTF-8">, jotta ääkköset näkyvät oikein kaikissa selaimissa.'));
   } else {
     checks.push(ck('Merkistökoodaus', 'pass', 'Merkistökoodaus on määritelty.'));
     score += 10;
@@ -539,10 +539,10 @@ function analyzeTechnical($, url, extra = {}) {
       checks.push(ck('Vasteaika', 'pass', `Palvelin vastasi nopeasti (${ms} ms).`));
       score += 15;
     } else if (ms <= 2000) {
-      checks.push(ck('Vasteaika', 'warn', `Palvelimen vasteaika on kohtalainen (${ms} ms).`, 'Alle 800 ms vasteaika parantaa käyttäjäkokemusta ja hakukonenäkyvyyttä.'));
+      checks.push(ck('Vasteaika', 'warn', `Palvelimen vasteaika on kohtalainen (${ms} ms).`, 'Ota käyttöön välimuisti, esimerkiksi julkaisujärjestelmän välimuistilisäosa tai CDN-palvelu, ja tarkista palvelimen teho. Tavoite on alle 800 ms.'));
       score += 8;
     } else {
-      checks.push(ck('Vasteaika', 'fail', `Palvelin vastaa hitaasti (${ms} ms).`, 'Hidas sivusto menettää kävijöitä ja hakukonesijoituksia. Alle 2 sekunnin vasteaika on tavoite.'));
+      checks.push(ck('Vasteaika', 'fail', `Palvelin vastaa hitaasti (${ms} ms).`, 'Selvitä hitauden syy palveluntarjoajan kanssa: välimuisti, CDN-palvelu tai tehokkaampi palvelin ratkaisevat useimmiten. Hidas sivu menettää kävijöitä ennen kuin ehtii latautua.'));
     }
   }
 
@@ -553,7 +553,7 @@ function analyzeTechnical($, url, extra = {}) {
       checks.push(ck('Robots.txt', 'pass', 'Robots.txt-tiedosto löytyi — hakukoneet tietävät mitä indeksoida.'));
       score += 10;
     } else {
-      checks.push(ck('Robots.txt', 'warn', 'Robots.txt-tiedostoa ei löytynyt.', 'Robots.txt kertoo hakukoneille mitkä osat sivustosta indeksoidaan. Sen puuttuminen ei estä indeksointia, mutta voi johtaa turhien sivujen indeksointiin.'));
+      checks.push(ck('Robots.txt', 'warn', 'Robots.txt-tiedostoa ei löytynyt.', 'Lisää sivuston juureen robots.txt-tiedosto, joka kertoo hakukoneille, mitä saa lukea, ja osoittaa sivukarttaan (rivi "Sitemap: https://…/sitemap.xml"). Sen puuttuminen ei estä indeksointia, mutta turhatkin sivut voivat päätyä hakutuloksiin.'));
     }
   }
 
@@ -564,7 +564,7 @@ function analyzeTechnical($, url, extra = {}) {
       checks.push(ck('Sivukartta', 'pass', 'XML-sivukartta löytyi — hakukoneet löytävät kaikki sivut.'));
       score += 10;
     } else {
-      checks.push(ck('Sivukartta', 'warn', 'XML-sivukarttaa (sitemap.xml) ei löytynyt.', 'Sivukartta auttaa hakukoneita löytämään ja indeksoimaan kaikki sivut tehokkaammin.'));
+      checks.push(ck('Sivukartta', 'warn', 'XML-sivukarttaa (sitemap.xml) ei löytynyt.', 'Luo XML-sivukartta ja lähetä se Google Search Consoleen. Useimmat julkaisujärjestelmät, kuten WordPress, tekevät sen automaattisesti tai lisäosalla. Sivukartan avulla hakukone löytää kaikki sivut.'));
     }
   }
 
@@ -578,9 +578,9 @@ function analyzeContent($, text) {
   const wordCount = countWords(text);
   max += 20;
   if (wordCount < 100) {
-    checks.push(ck('Sisällön määrä', 'fail', `Noin ${wordCount} sanaa.`, 'Vähintään 300 sanaa on hyvä lähtökohta.'));
+    checks.push(ck('Sisällön määrä', 'fail', `Noin ${wordCount} sanaa.`, 'Kirjoita sivulle vähintään 300 sanaa: mitä tarjoatte, kenelle, miten työ etenee ja miksi teidät kannattaa valita. Hakukone tarvitsee tekstiä ymmärtääkseen sivun aiheen.'));
   } else if (wordCount < 300) {
-    checks.push(ck('Sisällön määrä', 'warn', `Noin ${wordCount} sanaa — voisi olla enemmän.`, '500+ sanaa mahdollistaa paremman sijoittumisen.'));
+    checks.push(ck('Sisällön määrä', 'warn', `Noin ${wordCount} sanaa — voisi olla enemmän.`, 'Täydennä sisältöä esimerkiksi palvelukuvauksilla, asiakasesimerkeillä ja usein kysytyillä kysymyksillä. Noin 500 sanaa antaa hakukoneelle paremman kuvan sivusta.'));
     score += 10;
   } else {
     checks.push(ck('Sisällön määrä', 'pass', `Noin ${wordCount} sanaa — riittävästi sisältöä.`));
@@ -595,9 +595,9 @@ function analyzeContent($, text) {
     if (headings[i] > headings[i - 1] + 1) { hierarchyOk = false; break; }
   }
   if (headings.length === 0) {
-    checks.push(ck('Otsikkorakenne', 'fail', 'Sivulla ei ole yhtään otsikkoa.', 'Lisää otsikkorakenne (H1–H6) jäsentämään sisältöä.'));
+    checks.push(ck('Otsikkorakenne', 'fail', 'Sivulla ei ole yhtään otsikkoa.', 'Jäsennä sisältö otsikoilla: yksi pääotsikko (H1) ja aiheittain väliotsikot (H2, H3). Otsikot auttavat kävijää silmäilemään ja hakukonetta ymmärtämään rakenteen.'));
   } else if (!hierarchyOk) {
-    checks.push(ck('Otsikkorakenne', 'warn', 'Otsikkotasot hyppäävät (esim. H2 → H4).', 'Pidä rakenne loogisena: H1 → H2 → H3.'));
+    checks.push(ck('Otsikkorakenne', 'warn', 'Otsikkotasot hyppäävät (esim. H2 → H4).', 'Korjaa otsikkotasot järjestykseen H1 → H2 → H3. Valitse taso sisällön rakenteen mukaan, ei ulkoasun, sillä otsikon koon voi säätää tyyleillä.'));
     score += 7;
   } else {
     checks.push(ck('Otsikkorakenne', 'pass', `${headings.length} otsikkoa, rakenne on looginen.`));
@@ -611,10 +611,10 @@ function analyzeContent($, text) {
   });
   max += 15;
   if (images.length === 0) {
-    checks.push(ck('Kuvien alt-tekstit', 'warn', 'Sivulla ei ole kuvia.', 'Kuvat voivat parantaa käyttökokemusta.'));
+    checks.push(ck('Kuvien alt-tekstit', 'warn', 'Sivulla ei ole kuvia.', 'Lisää sivulle kuvia, jotka tukevat viestiä, esimerkiksi tiimistä, työstä tai tuotteista, ja kirjoita jokaiselle kuvaava alt-teksti.'));
     score += 7;
   } else if (noAlt.length > 0) {
-    checks.push(ck('Kuvien alt-tekstit', 'fail', `${noAlt.length}/${images.length} kuvalta puuttuu alt-teksti.`, 'Alt-tekstit parantavat saavutettavuutta ja hakukonenäkyvyyttä.'));
+    checks.push(ck('Kuvien alt-tekstit', 'fail', `${noAlt.length}/${images.length} kuvalta puuttuu alt-teksti.`, 'Kirjoita jokaiselle kuvalle lyhyt alt-teksti, joka kertoo, mitä kuvassa on. Alt-teksti kertoo kuvan sisällön hakukoneille ja ruudunlukijaa käyttäville.'));
     score += Math.round(15 * (1 - noAlt.length / images.length));
   } else {
     checks.push(ck('Kuvien alt-tekstit', 'pass', `Kaikilla ${images.length} kuvalla on alt-teksti.`));
@@ -634,13 +634,13 @@ function analyzeSocial($) {
   max += 30;
   const ogCount = [ogTitle, ogDesc, ogImage].filter(Boolean).length;
   if (ogCount === 0) {
-    checks.push(ck('Open Graph', 'fail', 'Open Graph -tagit puuttuvat.', 'OG-tagit määrittävät miltä sivusi näyttää jaettaessa sosiaalisessa mediassa.'));
+    checks.push(ck('Open Graph', 'fail', 'Open Graph -tagit puuttuvat.', 'Lisää sivulle Open Graph -tagit og:title, og:description ja og:image. Niiden avulla jaettu linkki näkyy LinkedInissä ja viestisovelluksissa kuvana ja otsikkona. WordPressissä ne hoituvat esimerkiksi Yoast-lisäosalla.'));
   } else if (ogCount < 3) {
     const missing = [];
     if (!ogTitle) missing.push('og:title');
     if (!ogDesc) missing.push('og:description');
     if (!ogImage) missing.push('og:image');
-    checks.push(ck('Open Graph', 'warn', `Osittain kunnossa. Puuttuu: ${missing.join(', ')}.`, 'Lisää puuttuvat OG-tagit.'));
+    checks.push(ck('Open Graph', 'warn', `Osittain kunnossa. Puuttuu: ${missing.join(', ')}.`, `Lisää puuttuvat tagit: ${missing.join(', ')}.${missing.includes('og:image') ? ' Jakokuvaksi sopii 1200 × 630 pikselin kuva.' : ''}`));
     score += Math.round(30 * ogCount / 3);
   } else {
     checks.push(ck('Open Graph', 'pass', 'og:title, og:description ja og:image löytyvät.'));
@@ -651,7 +651,7 @@ function analyzeSocial($) {
   const twTitle = $('meta[name="twitter:title"]').attr('content') || '';
   max += 20;
   if (!twCard && !twTitle) {
-    checks.push(ck('Twitter/X-kortit', 'warn', 'Twitter Card -tagit puuttuvat.', 'Lisää twitter:card ja twitter:title jakonäkymän parantamiseksi.'));
+    checks.push(ck('Twitter/X-kortit', 'warn', 'Twitter Card -tagit puuttuvat.', 'Lisää tagit twitter:card (arvo "summary_large_image") ja twitter:title, jotta linkki näkyy X:ssä isona kuvakorttina.'));
   } else {
     checks.push(ck('Twitter/X-kortit', 'pass', 'Twitter Card -tagit löytyvät.'));
     score += 20;
@@ -660,7 +660,7 @@ function analyzeSocial($) {
   const favicon = $('link[rel="icon"]').length || $('link[rel="shortcut icon"]').length;
   max += 10;
   if (!favicon) {
-    checks.push(ck('Favicon', 'warn', 'Favicon puuttuu.', 'Favicon näkyy selainvälilehdessä ja hakutuloksissa.'));
+    checks.push(ck('Favicon', 'warn', 'Favicon puuttuu.', 'Lisää sivustolle favicon eli pieni tunnuskuva. Se näkyy selaimen välilehdellä ja Googlen hakutuloksissa sivun nimen vieressä.'));
   } else {
     checks.push(ck('Favicon', 'pass', 'Favicon on asetettu.'));
     score += 10;
@@ -676,7 +676,7 @@ function analyzeAI($, text, extra = {}) {
   const jsonLd = $('script[type="application/ld+json"]');
   max += 25;
   if (jsonLd.length === 0) {
-    checks.push(ck('Rakenteellinen data', 'warn', 'JSON-LD-merkintöjä ei löytynyt.', 'Schema.org-merkinnät auttavat tekoälyjä ymmärtämään sivuston sisällön.'));
+    checks.push(ck('Rakenteellinen data', 'warn', 'JSON-LD-merkintöjä ei löytynyt.', 'Lisää sivulle schema.org-merkinnät JSON-LD-muodossa, vähintään Organization- tai LocalBusiness-tyyppi yrityksen nimellä, yhteystiedoilla ja palveluilla. Ne kertovat hakukoneille ja tekoälyille yksiselitteisesti, keitä olette ja mitä teette.'));
   } else {
     checks.push(ck('Rakenteellinen data', 'pass', `${jsonLd.length} JSON-LD-lohkoa löytyi.`));
     score += 25;
@@ -687,7 +687,7 @@ function analyzeAI($, text, extra = {}) {
   const questionHeadings = headingTexts.filter(t => /\?$/.test(t) || /^(miksi|miten|mitä|milloin|kuinka|what|how|why|when)/i.test(t));
   max += 25;
   if (questionHeadings.length === 0) {
-    checks.push(ck('Kysymysmuotoiset otsikot', 'warn', 'Kysymysmuotoisia otsikoita ei löytynyt.', 'Kysymys-vastaus-muotoinen sisältö parantaa näkyvyyttä tekoälyhauissa ja FAQ-snippeteissä.'));
+    checks.push(ck('Kysymysmuotoiset otsikot', 'warn', 'Kysymysmuotoisia otsikoita ei löytynyt.', 'Muotoile osa väliotsikoista asiakkaan kysymyksiksi, esimerkiksi "Mitä palvelu maksaa?", ja vastaa heti otsikon alla. Tekoälyhaut poimivat tällaisia vastauksia suoraan.'));
   } else {
     checks.push(ck('Kysymysmuotoiset otsikot', 'pass', `${questionHeadings.length} kysymysmuotoista otsikkoa löytyi.`));
     score += 25;
@@ -701,7 +701,7 @@ function analyzeAI($, text, extra = {}) {
     checks.push(ck('UKK-merkinnät (FAQ-schema)', 'pass', 'Usein kysyttyjen kysymysten merkinnät löytyivät. Ne auttavat hakukoneita ja tekoälyjä poimimaan vastauksia suoraan sivulta.'));
     score += 15;
   } else {
-    checks.push(ck('UKK-merkinnät (FAQ-schema)', 'warn', 'Usein kysyttyjen kysymysten merkintöjä ei löytynyt.', 'Merkityt kysymykset ja vastaukset ovat tekoälyhauille helppo lähde, ja ne voivat tuoda lisänäkyvyyttä hakutuloksiin.'));
+    checks.push(ck('UKK-merkinnät (FAQ-schema)', 'warn', 'Usein kysyttyjen kysymysten merkintöjä ei löytynyt.', 'Kokoa sivulle asiakkaiden usein kysymät kysymykset vastauksineen ja merkitse ne FAQPage-rakenteella. Merkityt kysymykset ja vastaukset ovat tekoälyhauille helppo lähde.'));
   }
 
   const metaRobots = ($('meta[name="robots"]').attr('content') || '').toLowerCase();
@@ -710,10 +710,10 @@ function analyzeAI($, text, extra = {}) {
   const names = list => list.map(b => b.name).join(', ');
   max += 15;
   if (blockedSearch.length) {
-    checks.push(ck('Tekoälypääsy', 'fail', `Robots.txt estää tekoälyhakuja lukemasta sivustoa: ${names(blockedSearch)}.`, 'Kun tekoälyhaku ei pääse sivustolle, se ei voi suositella teitä vastauksissaan. Salli ainakin hakubotit robots.txt-tiedostossa.'));
+    checks.push(ck('Tekoälypääsy', 'fail', `Robots.txt estää tekoälyhakuja lukemasta sivustoa: ${names(blockedSearch)}.`, 'Poista robots.txt-tiedostosta hakubottien estot (esimerkiksi OAI-SearchBot, ChatGPT-User ja PerplexityBot). Kun tekoälyhaku ei pääse sivustolle, se ei voi suositella teitä vastauksissaan.'));
   } else if (blocked.length || metaRobots.includes('noai')) {
     const what = blocked.length ? `Robots.txt estää osan tekoälyboteista (${names(blocked)})` : 'Sivulla on noai-merkintä';
-    checks.push(ck('Tekoälypääsy', 'warn', `${what}. Tekoälyhaut pääsevät silti sivustolle.`, 'Estetyt botit keräävät aineistoa tekoälymallien koulutukseen. Esto voi olla harkittu valinta, mutta se voi heikentää sitä, miten mallit tuntevat yrityksen.'));
+    checks.push(ck('Tekoälypääsy', 'warn', `${what}. Tekoälyhaut pääsevät silti sivustolle.`, 'Päätä, haluatko yrityksen tietojen päätyvän tekoälymallien koulutusaineistoon. Estetyt botit keräävät aineistoa koulutukseen, joten esto voi heikentää sitä, miten mallit tuntevat yrityksen. Jos haluat mallien tuntevan teidät, poista estot robots.txt-tiedostosta.'));
     score += 8;
   } else {
     checks.push(ck('Tekoälypääsy', 'pass', extra.robots ? 'Robots.txt sallii tekoälyhakujen ja -bottien pääsyn sivustolle.' : 'Tekoälybotteja ei ole estetty.'));
@@ -725,9 +725,9 @@ function analyzeAI($, text, extra = {}) {
   const appShell = $('#root,#app,#__next,#__nuxt,[data-reactroot],app-root').length > 0 || $('script[src]').length >= 5;
   max += 20;
   if (words < 80 && appShell) {
-    checks.push(ck('Sisältö ilman JavaScriptiä', 'fail', `Sivun sisältö syntyy vasta JavaScriptillä — botit näkevät vain noin ${words} sanaa.`, 'Tekoälybotit ja osa hakukoneista eivät aja JavaScriptiä. Palvelinpuolen renderöinti tai esirenderöinti tuo sisällön niiden ulottuville.'));
+    checks.push(ck('Sisältö ilman JavaScriptiä', 'fail', `Sivun sisältö syntyy vasta JavaScriptillä — botit näkevät vain noin ${words} sanaa.`, 'Pyydä sivuston kehittäjää ottamaan käyttöön palvelinpuolen renderöinti tai esirenderöinti, jotta sisältö on mukana sivun HTML-koodissa. Tekoälybotit ja osa hakukoneista eivät aja JavaScriptiä.'));
   } else if (words < 200 && appShell) {
-    checks.push(ck('Sisältö ilman JavaScriptiä', 'warn', `Vain osa sisällöstä näkyy ilman JavaScriptiä (noin ${words} sanaa).`, 'Varmista, että palvelut ja tärkein teksti ovat mukana sivun HTML-koodissa.'));
+    checks.push(ck('Sisältö ilman JavaScriptiä', 'warn', `Vain osa sisällöstä näkyy ilman JavaScriptiä (noin ${words} sanaa).`, 'Varmista, että palvelukuvaukset ja tärkein teksti ovat mukana sivun HTML-koodissa eivätkä lataudu vasta JavaScriptillä.'));
     score += 10;
   } else {
     checks.push(ck('Sisältö ilman JavaScriptiä', 'pass', 'Sisältö näkyy suoraan sivun koodissa, joten myös tekoälybotit pystyvät lukemaan sen.'));
@@ -752,7 +752,7 @@ function analyzeKeywords($, pageLang, text) {
 
   // Minimisisältökynnys — liian vähän tekstiä -> ei luotettavaa analyysiä
   if (totalTerms < 30) {
-    checks.push(ck('Sisällön määrä', 'fail', 'Sivustolla on liian vähän tekstisisältöä avainsana-analyysiin.', 'Hakukoneet tarvitsevat riittävästi tekstiä ymmärtääkseen, mistä sivu kertoo. Alle 100 sanaa ei riitä.'));
+    checks.push(ck('Sisällön määrä', 'fail', 'Sivustolla on liian vähän tekstisisältöä avainsana-analyysiin.', 'Kirjoita sivulle vähintään 300 sanaa tekstiä palveluistanne. Hakukone tarvitsee tekstiä ymmärtääkseen, mistä sivu kertoo.'));
     return cat('keywords', 'Avainsanat', 'Tuoko sivusto ostavia asiakkaita vai satunnaisia kävijöitä?', 5, 100, checks, 2);
   }
 
@@ -773,10 +773,10 @@ function analyzeKeywords($, pageLang, text) {
     checks.push(ck('Hakutuloksen otsikko', 'pass', `Sivun otsikko ja kuvaus vastaavat sivun sisältöä hyvin (${metaTopMatch}/5 ydintermiä löytyy).`));
     score += 25;
   } else if (metaTopMatch >= 1) {
-    checks.push(ck('Hakutuloksen otsikko', 'warn', `Sivun otsikko ja kuvaus vastaavat sisältöä vain osittain (${metaTopMatch}/5 ydintermiä).`, 'Kun otsikko ja kuvaus heijastavat sivun oikeita teemoja, Google näyttää sivun oikeille hakijoille.'));
+    checks.push(ck('Hakutuloksen otsikko', 'warn', `Sivun otsikko ja kuvaus vastaavat sisältöä vain osittain (${metaTopMatch}/5 ydintermiä).`, 'Kirjoita otsikko ja kuvaus uudelleen niin, että niissä toistuvat sivun tärkeimmät aiheet, samat sanat, joilla asiakkaat palveluanne hakevat.'));
     score += 12;
   } else {
-    checks.push(ck('Hakutuloksen otsikko', 'fail', 'Sivun otsikko ja kuvaus eivät kerro Googlelle, mistä sivu oikeasti kertoo.', 'Hakijat näkevät otsikon ja kuvauksen ennen kuin klikkaavat — ne ratkaisevat, tuleeko kävijöitä.'));
+    checks.push(ck('Hakutuloksen otsikko', 'fail', 'Sivun otsikko ja kuvaus eivät kerro Googlelle, mistä sivu oikeasti kertoo.', 'Kirjoita otsikko ja kuvaus uudelleen sivun pääaiheen ympärille: mitä tarjoatte ja kenelle. Hakija näkee ne ennen kuin päättää, klikkaako.'));
   }
 
   // --- 2. Väärät kävijät (kontekstitietoinen) ---
@@ -795,11 +795,11 @@ function analyzeKeywords($, pageLang, text) {
   });
 
   const TRAP_PATTERNS = [
-    { terms: ['ilmainen', 'ilmaiseksi', 'ilmaista', 'maksuton', 'free'], label: '"ilmainen"-hakusanat', reason: 'Ilmaista etsivät harvoin ostavat — sivusto voi kerätä väärää yleisöä.', skipIf: ['ecommerce'] },
-    { terms: ['työ', 'työpaikka', 'rekry', 'avoimet', 'palkka', 'ura', 'työnhaku'], label: 'työnhaku-hakusanat', reason: 'Työnhakijat löytävät sivuston, vaikka he eivät ole potentiaalisia asiakkaita.', skipIf: ['recruitment'] },
-    { terms: ['koulutus', 'kurssi', 'opiskelu', 'tutkinto', 'oppiminen', 'oppia'], label: 'opiskelu-hakusanat', reason: 'Opiskelijat ja tiedonhakijat harvoin ostavat palveluita.', skipIf: ['education'] },
-    { terms: ['kokemuksia', 'arvostelu', 'arvostelut', 'review', 'vertailu'], label: 'vertailu-hakusanat', reason: 'Vertailuhakijat ovat vasta tiedonhakuvaiheessa eivätkä yleensä ota yhteyttä.', skipIf: ['review'] },
-    { terms: ['ohje', 'opas', 'tutorial', 'miten', 'kuinka'], label: 'tee-se-itse -hakusanat', reason: 'Itse tekemisestä kiinnostuneet eivät yleensä osta palvelua.', skipIf: ['education', 'media'] },
+    { terms: ['ilmainen', 'ilmaiseksi', 'ilmaista', 'maksuton', 'free'], label: '"ilmainen"-hakusanat', reason: 'Ilmaista etsivät harvoin ostavat — sivusto voi kerätä väärää yleisöä.', fix: 'Käytä "ilmainen"-sanoja vain siellä, missä tarjoatte oikeasti jotain maksutonta, ja kerro muualla palvelun arvosta ja tuloksista.', skipIf: ['ecommerce'] },
+    { terms: ['työ', 'työpaikka', 'rekry', 'avoimet', 'palkka', 'ura', 'työnhaku'], label: 'työnhaku-hakusanat', reason: 'Työnhakijat löytävät sivuston, vaikka he eivät ole potentiaalisia asiakkaita.', fix: 'Kokoa rekrytointisisältö omalle urasivulleen, jotta etusivu ja palvelusivut puhuttelevat asiakkaita.', skipIf: ['recruitment'] },
+    { terms: ['koulutus', 'kurssi', 'opiskelu', 'tutkinto', 'oppiminen', 'oppia'], label: 'opiskelu-hakusanat', reason: 'Opiskelijat ja tiedonhakijat harvoin ostavat palveluita.', fix: 'Jos koulutus ei ole palvelunne, vähennä opiskeluun liittyviä sanoja palvelusivuilta ja kerro, mitä asiakas saa.', skipIf: ['education'] },
+    { terms: ['kokemuksia', 'arvostelu', 'arvostelut', 'review', 'vertailu'], label: 'vertailu-hakusanat', reason: 'Vertailuhakijat ovat vasta tiedonhakuvaiheessa eivätkä yleensä ota yhteyttä.', fix: 'Kerro vertailujen ja arvostelujen yhteydessä, miksi asiakkaat valitsevat juuri teidät, ja lisää selkeä toimintakehotus.', skipIf: ['review'] },
+    { terms: ['ohje', 'opas', 'tutorial', 'miten', 'kuinka'], label: 'tee-se-itse -hakusanat', reason: 'Itse tekemisestä kiinnostuneet eivät yleensä osta palvelua.', fix: 'Pidä ohjeet ja oppaat omana sisältönään ja ohjaa niistä palveluun: kerro, milloin apua kannattaa pyytää.', skipIf: ['education', 'media'] },
   ];
 
   max += 25;
@@ -819,11 +819,11 @@ function analyzeKeywords($, pageLang, text) {
     score += 25;
   } else if (foundTraps.length <= 2) {
     const detail = foundTraps.map(t => t.label).join(' ja ');
-    checks.push(ck('Väärät kävijät', 'warn', `Sivustolla on sanoja, jotka voivat tuoda vääriä kävijöitä: ${detail}.`, foundTraps[0].reason));
+    checks.push(ck('Väärät kävijät', 'warn', `Sivustolla on sanoja, jotka voivat tuoda vääriä kävijöitä: ${detail}. ${foundTraps[0].reason}`, foundTraps.map(t => t.fix).join(' ')));
     score += 12;
   } else {
     const detail = foundTraps.map(t => t.label).join(', ');
-    checks.push(ck('Väärät kävijät', 'fail', `Sivusto voi näkyä hauissa, jotka tuovat kävijöitä jotka eivät osta: ${detail}.`, 'Oikeat hakusanat ratkaisevat, tuleeko sivustolle potentiaalisia asiakkaita vai satunnaisia kävijöitä.'));
+    checks.push(ck('Väärät kävijät', 'fail', `Sivusto voi näkyä hauissa, jotka tuovat kävijöitä jotka eivät osta: ${detail}.`, 'Käy läpi, missä yhteydessä sanoja käytetään, ja muotoile tekstit puhuttelemaan ostavaa asiakasta: kerro palvelun arvosta ja tuloksista. Siirrä muu sisältö, kuten rekrytointi tai ohjeet, omille sivuilleen.'));
   }
 
   // --- 3. Sisällön selkeys ---
@@ -834,10 +834,10 @@ function analyzeKeywords($, pageLang, text) {
     checks.push(ck('Sisällön selkeys', 'pass', `Sivusto kertoo selkeästi yhdestä aiheesta — Google ymmärtää mistä on kyse.`));
     score += 25;
   } else if (top5Concentration >= 0.04) {
-    checks.push(ck('Sisällön selkeys', 'warn', `Sivuston viesti hajoaa useaan suuntaan — Google ei ole varma, mistä sivu kertoo.`, 'Kun sivusto keskittyy muutamaan ydinteemaan, se nousee paremmin hakutuloksissa.'));
+    checks.push(ck('Sisällön selkeys', 'warn', `Sivuston viesti hajoaa useaan suuntaan — Google ei ole varma, mistä sivu kertoo.`, 'Valitse sivulle 1–3 ydinteemaa ja rakenna otsikot ja tekstit niiden ympärille. Muut aiheet kannattaa siirtää omille sivuilleen.'));
     score += 12;
   } else {
-    checks.push(ck('Sisällön selkeys', 'fail', `Sivusto puhuu liian monesta asiasta — hakukone ei osaa yhdistää sitä mihinkään hakuun.`, 'Selkeä fokus muutamaan ydinteemaan auttaa Googlea näyttämään sivuston oikeille hakijoille.'));
+    checks.push(ck('Sisällön selkeys', 'fail', `Sivusto puhuu liian monesta asiasta — hakukone ei osaa yhdistää sitä mihinkään hakuun.`, 'Jaa sisältö aiheittain omille sivuilleen niin, että jokaisella sivulla on yksi selkeä pääaihe. Silloin Google osaa näyttää sivut oikeille hakijoille.'));
   }
 
   // --- 4. Myyntivalmius (kielitietoinen) ---
@@ -856,10 +856,10 @@ function analyzeKeywords($, pageLang, text) {
     checks.push(ck('Myyntivalmius', 'pass', `Sivusto ohjaa kävijän kohti yhteydenottoa — palvelut, hinnat ja toimintakehotukset ovat selkeästi esillä.`));
     score += 25;
   } else if (commercialCount >= 3) {
-    checks.push(ck('Myyntivalmius', 'warn', `Sivustolla on myyntisisältöä, mutta kävijä ei välttämättä ymmärrä mitä tehdä seuraavaksi.`, 'Selkeämmät toimintakehotukset ja palvelukuvaukset auttavat kävijöitä ottamaan yhteyttä.'));
+    checks.push(ck('Myyntivalmius', 'warn', `Sivustolla on myyntisisältöä, mutta kävijä ei välttämättä ymmärrä mitä tehdä seuraavaksi.`, 'Lisää palvelukuvausten yhteyteen selkeä toimintakehotus, esimerkiksi "Pyydä tarjous" tai "Varaa keskustelu", ja pidä yhteystiedot näkyvillä.'));
     score += 15;
   } else {
-    checks.push(ck('Myyntivalmius', 'fail', `Sivusto kertoo, mutta ei myy — kävijä saa tietoa mutta ei syytä ottaa yhteyttä.`, 'Kävijä tarvitsee selkeän syyn toimia: mitä tarjoat, kenelle ja miten pääsee alkuun.'));
+    checks.push(ck('Myyntivalmius', 'fail', `Sivusto kertoo, mutta ei myy — kävijä saa tietoa mutta ei syytä ottaa yhteyttä.`, 'Kerro selkeästi, mitä tarjoatte, kenelle ja miten pääsee alkuun. Lisää sivulle näkyvä toimintakehotus ja yhteystiedot.'));
   }
 
   return cat('keywords', 'Avainsanat', 'Tuoko sivusto ostavia asiakkaita vai satunnaisia kävijöitä?', score, max, checks, 2);
