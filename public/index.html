@@ -199,7 +199,10 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 }
 .btn-gate:hover{background:var(--violet-dark);transform:translateY(-1px)}
 .btn-gate:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.gate-error{font-size:13px;color:var(--fail);margin:-4px 0 10px;text-align:left}
+.gate-error:empty{display:none}
 .gate-note{font-size:12px;color:var(--muted);margin-top:10px}
+.gate-note a{color:var(--muted);text-decoration:underline}
 
 /* Full results */
 .results-full{display:none;padding:0 0 40px}
@@ -356,9 +359,10 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
           <input type="checkbox" id="newsletter-check">
           <label for="newsletter-check">Haluan myös SEO Salesin uutiskirjeen: ajankohtaisia näkemyksiä näkyvyydestä, myynnistä ja kasvusta.</label>
         </div>
+        <p class="gate-error" id="gate-error" role="alert"></p>
         <button type="submit" class="btn-gate" id="unlock-btn">Avaa raportti</button>
       </form>
-      <p class="gate-note">Käytämme osoitetta vain raportin ja siihen liittyvien viestien lähettämiseen.</p>
+      <p class="gate-note">Käytämme osoitetta vain raportin ja siihen liittyvien viestien lähettämiseen. <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p>
     </div>
   </div>
 </div>
@@ -436,6 +440,9 @@ const catCtaTexts = {
 
 const STATUS_TEXT = { pass: 'Kunnossa', warn: 'Huomioitavaa', fail: 'Korjattavaa' };
 
+// Analyysipalvelun osoite: tyhjä = sama palvelin. seosales.fi-sivulla asetetaan window.SEO_CHECKER_API.
+const API_BASE = (window.SEO_CHECKER_API || '').replace(/\/$/, '');
+
 let currentData = null;
 
 function $(id) { return document.getElementById(id); }
@@ -468,7 +475,7 @@ $('check-form').addEventListener('submit', async (e) => {
   $('check-btn').disabled = true;
 
   try {
-    const res = await fetch('/api/check', {
+    const res = await fetch(API_BASE + '/api/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
@@ -498,20 +505,21 @@ $('email-form').addEventListener('submit', async (e) => {
   $('unlock-btn').disabled = true;
 
   try {
-    await fetch('/api/lead', {
+    const res = await fetch(API_BASE + '/api/lead', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        phone,
-        newsletter,
-        url: currentData?.url,
-        score: currentData?.score,
-        categories: currentData?.categories,
-        platform: currentData?.platform,
-        summary: currentData?.summary,
-      }),
+      body: JSON.stringify({ email, phone, newsletter, analysisId: currentData?.analysisId, url: currentData?.url }),
     });
+    // Virheellinen osoite korjataan ennen raportin avaamista; muut virheet eivät estä raportin näyttämistä.
+    if (res.status === 400) {
+      const data = await res.json().catch(() => ({}));
+      if (data.code === 'invalid_email') {
+        $('gate-error').textContent = data.error;
+        $('unlock-btn').disabled = false;
+        $('email-input').focus();
+        return;
+      }
+    }
   } catch { /* lead-tallennus epäonnistui — ei estä raportin näyttämistä */ }
 
   $('gate-wrapper').style.display = 'none';

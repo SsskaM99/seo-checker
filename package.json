@@ -5,10 +5,14 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node scripts/email-test.mjs"
   },
   "dependencies": {
     "express": "^4.18.2",
     "cheerio": "^1.0.0-rc.12"
+  },
+  "engines": {
+    "node": ">=20.12"
   }
 }

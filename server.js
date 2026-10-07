@@ -2,15 +2,46 @@ const express = require('express');
 const cheerio = require('cheerio');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { fetchPage, fetchSiteFiles, FetchError } = require('./fetcher');
+
+// Paikallisesti asetukset luetaan .env-tiedostosta; pilvessä ne annetaan ympäristömuuttujina.
+try { process.loadEnvFile(path.join(__dirname, '.env')); } catch {}
+
+// Ympäristömuuttujat. Vanhat nimet (RESEND_KEY, FROM_EMAIL, FORMSPREE_ID) toimivat edelleen.
+const CONFIG = {
+  resendKey: process.env.RESEND_API_KEY || process.env.RESEND_KEY || '',
+  resendUrl: process.env.RESEND_API_URL || 'https://api.resend.com/emails',
+  from: process.env.RESEND_FROM || process.env.FROM_EMAIL || 'SEO Sales <raportti@seosales.fi>',
+  replyTo: process.env.REPLY_TO || '',
+  formspreeId: process.env.FORMSPREE_KEY || process.env.FORMSPREE_ID || '',
+  followupDays: Number(process.env.FOLLOWUP_DAYS || 3),
+  allowedOrigins: (process.env.ALLOWED_ORIGINS || 'https://seosales.fi,https://www.seosales.fi').split(',').map(s => s.trim()).filter(Boolean),
+};
 
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
-const LEADS_FILE = path.join(__dirname, 'leads.json');
-const ANALYSES_FILE = path.join(__dirname, 'analyses.json');
+// DATA_DIR: missä liidit, analyysiloki ja esikatseltavat viestit säilytetään (oletus: sovelluksen kansio).
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const LEADS_FILE = path.join(DATA_DIR, 'leads.json');
+const ANALYSES_FILE = path.join(DATA_DIR, 'analyses.json');
+const OUTBOX_DIR = path.join(DATA_DIR, 'outbox');
 
-app.use(express.json());
+// Sivu on seosales.fi:ssä (GitHub Pages) ja analyysipalvelu eri osoitteessa: sallitaan vain omat domainit.
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && CONFIG.allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  next();
+});
+
+app.use(express.json({ limit: '20kb' }));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 0, etag: false }));
 
 function loadLeads() {
@@ -39,14 +70,28 @@ function saveAnalysis(entry) {
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX = Number(process.env.RATE_MAX || 20);
 const rateHits = new Map();
-function rateLimited(ip) {
+function rateLimited(ip, bucket = 'check', max = RATE_MAX) {
   if (['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip)) return false; // paikallinen testaus
+  const key = bucket + ':' + ip;
   const now = Date.now();
-  const hits = (rateHits.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS);
+  const hits = (rateHits.get(key) || []).filter(t => now - t < RATE_WINDOW_MS);
   hits.push(now);
-  rateHits.set(ip, hits);
+  rateHits.set(key, hits);
   if (rateHits.size > 5000) rateHits.clear();
-  return hits.length > RATE_MAX;
+  return hits.length > max;
+}
+
+// Analyysin tulokset pidetään hetken palvelimella, jotta raporttisähköposti rakennetaan aina
+// palvelimen omista tuloksista eikä selaimen lähettämästä datasta.
+const ANALYSIS_TTL_MS = 2 * 60 * 60 * 1000;
+const analysisCache = new Map();
+function cacheAnalysis(results) {
+  const id = crypto.randomUUID();
+  const now = Date.now();
+  for (const [k, v] of analysisCache) if (now - v.ts > ANALYSIS_TTL_MS) analysisCache.delete(k);
+  if (analysisCache.size > 2000) analysisCache.delete(analysisCache.keys().next().value);
+  analysisCache.set(id, { results, ts: now });
+  return id;
 }
 
 async function runAnalysis(input) {
@@ -71,7 +116,7 @@ app.post('/api/check', async (req, res) => {
       timestamp: new Date().toISOString(),
     });
 
-    res.json(results);
+    res.json({ ...results, analysisId: cacheAnalysis(results) });
   } catch (err) {
     if (err instanceof FetchError) return res.status(err.httpStatus).json({ error: err.message, code: err.code });
     console.error('Analyysivirhe:', err);
@@ -107,6 +152,21 @@ function scoreDarkHex(score) {
   return '#FF8A7A';
 }
 
+// Tarkistusten liiketoiminnallinen painoarvo viestien järjestystä varten: ensin asiat, jotka vaikuttavat
+// suoraan löydettävyyteen ja yhteydenottoihin, viimeisenä tekniset hienosäädöt.
+const IMPACT_ORDER = [
+  'Indeksointi', 'HTTPS', 'Mobiilioptimointi', 'Sisältö ilman JavaScriptiä', 'Tekoälypääsy',
+  'Myyntivalmius', 'Hakutuloksen kuvaus', 'Sivun otsikko (title)', 'Hakutuloksen otsikko', 'Pääotsikko (H1)',
+  'Vasteaika', 'Sisällön määrä', 'Sisällön selkeys', 'Väärät kävijät', 'Yritystiedot', 'Rakenteellinen data',
+  'Open Graph', 'Kysymysmuotoiset otsikot', 'Otsikkorakenne', 'Sivukartta', 'Sisäiset linkit',
+  'Ensisijainen osoite (canonical)', 'Kuvien alt-tekstit', 'Robots.txt', 'UKK-merkinnät (FAQ-schema)',
+  'llms.txt', 'Twitter/X-kortit', 'Favicon', 'Kieliasetus', 'Merkistökoodaus',
+];
+function byImpact(checks) {
+  const rank = l => { const i = IMPACT_ORDER.indexOf(l); return i === -1 ? IMPACT_ORDER.length : i; };
+  return [...checks].sort((a, b) => rank(a.label) - rank(b.label));
+}
+
 function hostOf(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
 }
@@ -116,8 +176,8 @@ function buildReportHTML({ url, score, summary, categories, platform }) {
   const host = hostOf(url);
   const cats = Array.isArray(categories) ? categories : [];
   const allChecks = cats.flatMap(c => (c.checks || []).map(ch => ({ ...ch, catLabel: c.label })));
-  const fails = allChecks.filter(c => c.status === 'fail');
-  const warns = allChecks.filter(c => c.status === 'warn');
+  const fails = byImpact(allChecks.filter(c => c.status === 'fail'));
+  const warns = byImpact(allChecks.filter(c => c.status === 'warn'));
   const passes = allChecks.filter(c => c.status === 'pass');
   const CTA_URL = 'https://seosales.fi/yhteys.html';
 
@@ -229,64 +289,109 @@ function buildReportHTML({ url, score, summary, categories, platform }) {
 </body></html>`;
 }
 
-app.post('/api/lead', (req, res) => {
-  const { email, phone, newsletter, url, score, categories, summary, platform } = req.body;
-  if (!email || !email.includes('@')) return res.status(400).json({ error: 'Virheellinen sähköposti' });
+// Sähköpostin lähetys Resendillä. Ilman avainta viestit tallennetaan outbox-kansioon esikatseltaviksi.
+async function sendEmail({ to, subject, html, scheduledAt, idempotencyKey, tag }) {
+  const payload = { from: CONFIG.from, to, subject, html };
+  if (CONFIG.replyTo) payload.reply_to = CONFIG.replyTo;
+  if (scheduledAt) payload.scheduled_at = scheduledAt;
+  if (tag) payload.tags = [{ name: 'type', value: tag }];
+
+  if (!CONFIG.resendKey) {
+    fs.mkdirSync(OUTBOX_DIR, { recursive: true });
+    const file = path.join(OUTBOX_DIR, `${Date.now()}-${tag}.html`);
+    fs.writeFileSync(file, `<!-- ${JSON.stringify({ ...payload, html: undefined })} -->\n${html}`, 'utf8');
+    console.log(`[outbox] ${tag} -> ${to}${scheduledAt ? ' (ajastettu ' + scheduledAt + ')' : ''}: ${file}`);
+    return { ok: true, dryRun: true };
+  }
+
+  const r = await fetch(CONFIG.resendUrl, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${CONFIG.resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!r.ok) throw new Error(`Resend ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  return { ok: true, id: (await r.json()).id };
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+app.post('/api/lead', async (req, res) => {
+  if (rateLimited(req.ip, 'lead', 5)) {
+    return res.status(429).json({ error: 'Liian monta pyyntöä. Kokeile hetken kuluttua uudelleen.', code: 'rate_limited' });
+  }
+  const { email, phone, newsletter, analysisId, url } = req.body || {};
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!EMAIL_RE.test(cleanEmail) || cleanEmail.length > 254) {
+    return res.status(400).json({ error: 'Tarkista sähköpostiosoite.', code: 'invalid_email' });
+  }
+
+  // Tulokset palvelimen välimuistista; jos niitä ei enää ole (esim. palvelin käynnistyi uudelleen),
+  // analyysi ajetaan uudelleen samalle osoitteelle.
+  let results = analysisCache.get(String(analysisId || ''))?.results;
+  if (!results) {
+    try { results = await runAnalysis(url); }
+    catch { return res.status(400).json({ error: 'Analyysin tiedot vanhenivat. Tee analyysi uudelleen.', code: 'analysis_expired' }); }
+  }
 
   const lead = {
-    email: email.trim().toLowerCase(),
-    phone: (phone || '').trim(),
-    newsletter: !!newsletter,
-    url: url || '',
-    score: score ?? null,
+    id: crypto.randomUUID(),
+    email: cleanEmail,
+    phone: String(phone || '').trim().slice(0, 40),
+    newsletter: newsletter === true,
+    url: results.url,
+    score: results.score,
     timestamp: new Date().toISOString(),
   };
   saveLead(lead);
-  console.log(`Uusi liidi: ${lead.email} | ${lead.url} | newsletter: ${lead.newsletter}`);
+  console.log(`Uusi liidi: ${lead.email} | ${lead.url} | uutiskirje: ${lead.newsletter}`);
 
-  const reportHtml = buildReportHTML({ url: lead.url, score: lead.score, summary, categories, platform: typeof platform === 'string' ? platform.slice(0, 40) : null });
+  // Lähetetään ennen vastausta: Cloud Run hidastaa prosessia vastauksen jälkeen, jolloin taustalähetys voisi jäädä kesken.
+  const host = hostOf(results.url);
+  const followupAt = new Date(Date.now() + CONFIG.followupDays * 24 * 60 * 60 * 1000).toISOString();
+  const jobs = [
+    sendEmail({
+      to: lead.email,
+      subject: `Näkyvyysanalyysi: ${host} – ${results.score}/100`,
+      html: buildReportHTML({ url: results.url, score: results.score, summary: results.summary, categories: results.categories, platform: results.platform }),
+      idempotencyKey: `report-${lead.id}`,
+      tag: 'raportti',
+    }),
+    sendEmail({
+      to: lead.email,
+      subject: `Mitä ${host}-analyysin tuloksista kannattaa tehdä ensin?`,
+      html: buildFollowupHTML({ url: results.url, score: results.score, categories: results.categories }),
+      scheduledAt: followupAt,
+      idempotencyKey: `followup-${lead.id}`,
+      tag: 'muistutus',
+    }),
+  ];
 
-  const RESEND_KEY = process.env.RESEND_KEY || '';
-  const FROM_EMAIL = process.env.FROM_EMAIL || 'raportti@seosales.fi';
-
-  if (RESEND_KEY) {
-    fetch('https://api.resend.com/emails', {
+  if (CONFIG.formspreeId) {
+    jobs.push(fetch(`https://formspree.io/f/${CONFIG.formspreeId}`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
-        from: `SEO Sales <${FROM_EMAIL}>`,
-        to: lead.email,
-        subject: `Näkyvyysanalyysi: ${lead.url} — ${lead.score}/100`,
-        html: reportHtml,
-      }),
-    }).then(r => {
-      if (!r.ok) return r.text().then(t => console.error('Resend error:', t));
-      console.log(`Raportti lahetetty: ${lead.email}`);
-    }).catch(err => console.error('Resend error:', err.message));
-  }
-
-  const FORMSPREE_ID = process.env.FORMSPREE_ID || '';
-  if (FORMSPREE_ID) {
-    fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        _subject: `Uusi liidi: ${lead.email} | ${lead.url} | ${lead.score}/100`,
+        _subject: `Uusi liidi: ${lead.email} | ${host} | ${lead.score}/100`,
         email: lead.email,
         phone: lead.phone || '-',
         sivusto: lead.url,
         pistemaara: `${lead.score}/100`,
-        uutiskirje: lead.newsletter ? 'Kylla' : 'Ei',
+        uutiskirje: lead.newsletter ? 'Kyllä' : 'Ei',
+        muistutus: followupAt,
         aika: lead.timestamp,
       }),
-    }).then(r => {
-      if (!r.ok) return r.text().then(t => console.error('Formspree error:', t));
-      console.log(`Formspree-ilmoitus lahetetty`);
-    }).catch(err => console.error('Formspree error:', err.message));
+      signal: AbortSignal.timeout(10000),
+    }).then(r => { if (!r.ok) throw new Error(`Formspree ${r.status}`); }));
   }
 
-  res.json({ ok: true });
+  const outcome = await Promise.allSettled(jobs);
+  outcome.forEach((o, i) => {
+    if (o.status === 'rejected') console.error(`Lähetys ${['raportti', 'muistutus', 'formspree'][i]} epäonnistui (${lead.email}):`, o.reason.message);
+  });
+  res.json({ ok: true, emailSent: outcome[0].status === 'fulfilled' });
 });
+
 
 // Muistutusviesti noin kolme päivää analyysin jälkeen.
 function buildFollowupHTML({ url, score, categories }) {
@@ -294,7 +399,7 @@ function buildFollowupHTML({ url, score, categories }) {
   const host = hostOf(url);
   const cats = Array.isArray(categories) ? categories : [];
   const allChecks = cats.flatMap(c => (c.checks || []).map(ch => ({ ...ch, catLabel: c.label })));
-  const top = [...allChecks.filter(c => c.status === 'fail'), ...allChecks.filter(c => c.status === 'warn')].slice(0, 3);
+  const top = [...byImpact(allChecks.filter(c => c.status === 'fail')), ...byImpact(allChecks.filter(c => c.status === 'warn'))].slice(0, 3);
 
   const topBlock = top.length ? `
   <tr><td style="padding:8px 40px 4px">
