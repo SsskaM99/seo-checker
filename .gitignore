@@ -3,3 +3,4 @@ leads.json
 analyses.json
 .env
 outbox/
+dist/
