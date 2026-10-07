@@ -2,7 +2,9 @@
 // tunnistus, merkistön tunnistus ja robots.txt/sitemap-tiedot.
 
 const dns = require('dns').promises;
+const dnsCb = require('dns');
 const net = require('net');
+const { fetch, Agent } = require('undici');
 
 const TOTAL_TIMEOUT_MS = 15000;
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -28,6 +30,7 @@ class FetchError extends Error {
 
 function normalizeUrl(input) {
   let raw = String(input || '').trim();
+  if (raw.length > 2048) throw new FetchError('invalid_url', 'Osoite on liian pitkä.', 400);
   if (!raw) throw new FetchError('invalid_url', 'Syötä verkkosivun osoite, esimerkiksi yritys.fi.', 400);
   const hadProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
   if (!hadProtocol) raw = 'https://' + raw;
@@ -39,28 +42,51 @@ function normalizeUrl(input) {
     throw new FetchError('invalid_url', 'Analysoida voi vain verkkosivuja (http- tai https-osoitteita).', 400);
   }
   u.hash = '';
+  if (!ALLOWED_PORTS.includes(u.port)) {
+    throw new FetchError('invalid_url', 'Analysoida voi vain tavallisia verkkosivuja (ei erikoisportteja).', 400);
+  }
   if (!u.hostname.includes('.') && !u.hostname.startsWith('[')) {
     throw new FetchError('invalid_url', 'Osoitteesta puuttuu pääte, esimerkiksi yritys.fi.', 400);
   }
   return { url: u, hadProtocol };
 }
 
+// Vain tavalliset verkkosivuportit: estää palvelimen käytön muiden palveluiden porttien kokeiluun.
+const ALLOWED_PORTS = ['', '80', '443', '8080', '8443'];
+
+// Yksityiset, paikalliset ja erikoiskäyttöiset osoitteet. IPv6:ssa estetään myös IPv4-upotukset
+// (::ffff:0:0/96, NAT64, 6to4), joiden kautta sisäverkkoon voisi muuten päästä.
+const BLOCKED = new net.BlockList();
+for (const [a, p] of [['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16],
+  ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15],
+  ['198.51.100.0', 24], ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4]]) BLOCKED.addSubnet(a, p, 'ipv4');
+for (const [a, p] of [['::', 128], ['::1', 128], ['64:ff9b::', 96], ['64:ff9b:1::', 48],
+  ['2002::', 16], ['2001:db8::', 32], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8]]) BLOCKED.addSubnet(a, p, 'ipv6');
+
 function isPrivateIp(ip) {
-  if (net.isIPv4(ip)) {
-    const [a, b] = ip.split('.').map(Number);
-    return a === 0 || a === 10 || a === 127 || a >= 224 ||
-      (a === 100 && b >= 64 && b <= 127) ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 192 && b === 0) ||
-      (a === 198 && (b === 18 || b === 19));
-  }
-  const v6 = ip.toLowerCase();
-  if (v6.startsWith('::ffff:')) return isPrivateIp(v6.slice(7));
-  return v6 === '::' || v6 === '::1' || v6.startsWith('fc') || v6.startsWith('fd') ||
-    v6.startsWith('fe8') || v6.startsWith('fe9') || v6.startsWith('fea') || v6.startsWith('feb');
+  let addr = String(ip).toLowerCase();
+  // IPv4-upotus (::ffff:a.b.c.d tai ::ffff:7f00:1) tarkistetaan IPv4-sääntöjä vasten.
+  const dotted = /^::ffff:(d+.d+.d+.d+)$/.exec(addr);
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(addr);
+  if (dotted) addr = dotted[1];
+  else if (hex) { const h = parseInt(hex[1], 16), l = parseInt(hex[2], 16); addr = [h >> 8, h & 255, l >> 8, l & 255].join('.'); }
+  const type = net.isIPv4(addr) ? 'ipv4' : net.isIPv6(addr) ? 'ipv6' : null;
+  return !type || BLOCKED.check(addr, type);
 }
+
+// Yhteys avataan vain tarkistettuun osoitteeseen. Nimipalvelu kysytään yhteyden hetkellä uudelleen,
+// joten osoitetta ei voi vaihtaa tarkistuksen ja yhteyden välissä (DNS rebinding).
+function safeLookup(hostname, options, callback) {
+  dnsCb.lookup(hostname, { ...options, all: true }, (err, addrs) => {
+    if (err) return callback(err);
+    if (!addrs.length || addrs.some(a => isPrivateIp(a.address))) {
+      return callback(Object.assign(new Error('Estetty osoite'), { code: 'EBLOCKED' }));
+    }
+    if (options && options.all) return callback(null, addrs);
+    callback(null, addrs[0].address, addrs[0].family);
+  });
+}
+const dispatcher = new Agent({ connect: { lookup: safeLookup, timeout: 10000 } });
 
 // Estää palvelimen käytön sisäverkon osoitteiden kurkkimiseen (SSRF).
 async function assertPublicHost(hostname) {
@@ -136,7 +162,7 @@ async function fetchFollow(startUrl, userAgent, signal) {
     await assertPublicHost(current.hostname);
     const headers = { ...BASE_HEADERS, 'User-Agent': userAgent };
     if (cookies.size) headers['Cookie'] = [...cookies].map(([k, v]) => `${k}=${v}`).join('; ');
-    const res = await fetch(current, { headers, redirect: 'manual', signal });
+    const res = await fetch(current, { headers, redirect: 'manual', signal, dispatcher });
     for (const sc of res.headers.getSetCookie?.() || []) {
       const [pair] = sc.split(';');
       const i = pair.indexOf('=');
@@ -145,7 +171,7 @@ async function fetchFollow(startUrl, userAgent, signal) {
     if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
       res.body?.cancel().catch(() => {});
       current = new URL(res.headers.get('location'), current);
-      if (!['http:', 'https:'].includes(current.protocol)) throw new FetchError('fetch_failed', 'Sivusto ohjasi osoitteeseen, jota ei voi analysoida.');
+      if (!['http:', 'https:'].includes(current.protocol) || !ALLOWED_PORTS.includes(current.port)) throw new FetchError('fetch_failed', 'Sivusto ohjasi osoitteeseen, jota ei voi analysoida.');
       continue;
     }
     return { res, finalUrl: current.href };
@@ -159,6 +185,7 @@ function networkError(err, host) {
     return new FetchError('timeout', `Sivuston ${host} lataus kesti yli 15 sekuntia. Kokeile hetken kuluttua uudelleen.`, 504);
   }
   const code = err.cause?.code || '';
+  if (code === 'EBLOCKED') return new FetchError('blocked_address', 'Tätä osoitetta ei voi analysoida.', 400);
   if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return new FetchError('dns', `Osoitetta ${host} ei löytynyt. Tarkista kirjoitusasu.`, 400);
   if (code.startsWith('CERT_') || code.includes('SSL') || code.includes('TLS') || code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' || code === 'DEPTH_ZERO_SELF_SIGNED_CERT') {
     return new FetchError('tls', `Sivuston ${host} suojausvarmenne ei ole kunnossa, joten selaimet varoittavat kävijöitä. Tämä kannattaa korjata ensimmäisenä.`);
@@ -307,4 +334,4 @@ async function fetchSiteFiles(finalUrl) {
   return { robotsOk: robotsValid, robots, sitemapOk, llmsOk };
 }
 
-module.exports = { fetchPage, fetchSiteFiles, FetchError, AI_BOTS, parseRobots, isPrivateIp };
+module.exports = { fetchPage, fetchSiteFiles, FetchError, AI_BOTS, parseRobots, isPrivateIp, safeLookup };

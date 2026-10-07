@@ -41,6 +41,14 @@ app.use((req, res, next) => {
   next();
 });
 
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://seosales.fi https://www.seosales.fi");
+  next();
+});
+
 app.use(express.json({ limit: '20kb' }));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 0, etag: false }));
 
@@ -70,11 +78,11 @@ function saveAnalysis(entry) {
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX = Number(process.env.RATE_MAX || 20);
 const rateHits = new Map();
-function rateLimited(ip, bucket = 'check', max = RATE_MAX) {
+function rateLimited(ip, bucket = 'check', max = RATE_MAX, windowMs = RATE_WINDOW_MS) {
   if (['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(ip)) return false; // paikallinen testaus
   const key = bucket + ':' + ip;
   const now = Date.now();
-  const hits = (rateHits.get(key) || []).filter(t => now - t < RATE_WINDOW_MS);
+  const hits = (rateHits.get(key) || []).filter(t => now - t < windowMs);
   hits.push(now);
   rateHits.set(key, hits);
   if (rateHits.size > 5000) rateHits.clear();
@@ -314,7 +322,8 @@ async function sendEmail({ to, subject, html, scheduledAt, idempotencyKey, tag }
   return { ok: true, id: (await r.json()).id };
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Tavalliset sähköpostiosoitteen merkit; esimerkiksi <, > ja rivinvaihdot hylätään.
+const EMAIL_RE = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
 
 app.post('/api/lead', async (req, res) => {
   if (rateLimited(req.ip, 'lead', 5)) {
@@ -324,6 +333,10 @@ app.post('/api/lead', async (req, res) => {
   const cleanEmail = String(email || '').trim().toLowerCase();
   if (!EMAIL_RE.test(cleanEmail) || cleanEmail.length > 254) {
     return res.status(400).json({ error: 'Tarkista sähköpostiosoite.', code: 'invalid_email' });
+  }
+  // Samaan osoitteeseen enintään 3 raporttia vuorokaudessa: palvelua ei voi käyttää kenenkään postilaatikon täyttämiseen.
+  if (rateLimited(cleanEmail, 'recipient', 3, 24 * 60 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Tähän osoitteeseen on jo lähetetty useita raportteja tänään.', code: 'rate_limited' });
   }
 
   // Tulokset palvelimen välimuistista; jos niitä ei enää ole (esim. palvelin käynnistyi uudelleen),
@@ -456,7 +469,8 @@ function buildFollowupHTML({ url, score, categories }) {
 
 // Esikatselut vain kehityskäyttöön: tuotannossa ne tekisivät analyysejä ilman käyttörajoitusta.
 app.get(['/api/report-preview', '/api/followup-preview'], async (req, res) => {
-  if (process.env.NODE_ENV === 'production') return res.status(404).end();
+  // Vain paikallisesta koneesta, vaikka NODE_ENV jäisi asettamatta.
+  if (process.env.NODE_ENV === 'production' || !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip)) return res.status(404).end();
   const testUrl = req.query.url || 'https://esimerkki.fi';
   try {
     const data = await runAnalysis(testUrl);
@@ -897,11 +911,14 @@ function analyzeAI($, text, extra = {}) {
   }
 
   // Yritystiedot: Google ja tekoälyhaut suosittelevat helpommin yritystä, jonka tiedot ovat yksiselitteiset.
+  // Haku rajataan 300 000 merkkiin, ja sähköposti tarkistetaan sanoittain: pitkä välilyönnitön
+  // merkkijono ei saa hidastaa palvelinta (ReDoS).
+  const infoText = text.slice(0, 300000);
   const visible = {
-    puhelin: $('a[href^="tel:"]').length > 0 || /(?:\+358|(?<!\d)0)\s?\d{1,2}[\s-]?\d{3,4}[\s-]?\d{3,4}(?!\d)/.test(text),
-    'sähköposti': $('a[href^="mailto:"]').length > 0 || /[\w.+-]+@[\w-]+\.[a-z]{2,}/i.test(text),
-    osoite: /(?<!\d)\d{5}\s+\p{Lu}\p{Ll}+/u.test(text),
-    'Y-tunnus': /(?<!\d)\d{7}-\d(?!\d)/.test(text),
+    puhelin: $('a[href^="tel:"]').length > 0 || /(?:\+358|(?<!\d)0)\s?\d{1,2}[\s-]?\d{3,4}[\s-]?\d{3,4}(?!\d)/.test(infoText),
+    'sähköposti': $('a[href^="mailto:"]').length > 0 || infoText.split(/\s+/).some(w => w.length < 255 && w.includes('@') && /^[\w.+-]+@[\w-]+\.[a-z]{2,}/i.test(w.replace(/^\W+/, ''))),
+    osoite: /(?<!\d)\d{5}\s+\p{Lu}\p{Ll}+/u.test(infoText),
+    'Y-tunnus': /(?<!\d)\d{7}-\d(?!\d)/.test(infoText),
   };
   const foundInfo = Object.keys(visible).filter(k => visible[k]);
   const missingInfo = Object.keys(visible).filter(k => !visible[k]);
@@ -1094,6 +1111,15 @@ function makeSummary(score) {
   if (score >= 35) return 'Sivustossa on paljon hyödyntämätöntä potentiaalia. Kun tärkeimmät kohdat korjataan oikeassa järjestyksessä, näkyvyys paranee nopeasti.';
   return 'Sivustossa on paljon kasvuvaraa. Perusteiden korjaaminen on nopein tapa saada lisää näkyvyyttä ja yhteydenottoja.';
 }
+
+// Virheellinen JSON tai muu odottamaton virhe: ei pinojälkiä vastaukseen.
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed' || err.type === 'entity.too.large') {
+    return res.status(400).json({ error: 'Virheellinen pyyntö.', code: 'bad_request' });
+  }
+  console.error('Odottamaton virhe:', err);
+  res.status(500).json({ error: 'Palvelussa tapahtui virhe. Kokeile uudelleen.', code: 'internal' });
+});
 
 app.listen(PORT, () => {
   console.log(`SEO Checker running at http://localhost:${PORT}`);
