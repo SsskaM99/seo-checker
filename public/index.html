@@ -631,6 +631,13 @@ function renderIntro() {
 }
 renderIntro();
 
+// Etusivun teaser ohjaa tänne osoitteella ?url=…: analyysi käynnistyy heti.
+const startUrl = new URLSearchParams(location.search).get('url');
+if (startUrl) {
+  $('url-input').value = startUrl.slice(0, 300);
+  $('check-form').requestSubmit();
+}
+
 function buildBlurredPreview(data) {
   const wrap = $('blurred-preview');
   let html = '<div class="wrap">';
