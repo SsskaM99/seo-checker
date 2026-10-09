@@ -7,7 +7,7 @@ Päivitetty 7.10.2026.
 - [x] Analyysi: 31 tarkistusta kuudessa osa-alueessa; stressitesti 28/40 sivustoa (loput bottisuojauksia tai oikeita virheitä)
 - [x] Selkeät suomenkieliset virheilmoitukset, bottisuojatuille sivustoille keskustelulinkki
 - [x] Tietoturva: sisäverkon osoitteiden esto, käyttörajoitukset (analyysi 20 / 10 min, liidi 5 / 10 min per IP), sähköpostit rakennetaan palvelimen omista tuloksista
-- [x] Copy, raportin ilme (videopaneeli), korjausohjeet, saavutettavuus (axe: 0 rikkomusta)
+- [x] Copy, raportin ilme (animaatiopaneeli), korjausohjeet, saavutettavuus (axe: 0 rikkomusta)
 - [x] Raporttisähköposti (heti) ja muistutus (ajastettu 3 päivän päähän Resendissä)
 - [x] Sähköpostipolun testi: `npm test` (21 tarkistusta, ei lähetä oikeita viestejä)
 - [x] Tietosuojaseloste-linkki sähköpostiportissa, uutiskirjesuostumus ei oletuksena valittuna
@@ -39,7 +39,7 @@ Päivitetty 7.10.2026.
 ## Lanseerauksen jälkeen (suositellaan)
 
 - [ ] PNG-logo sähköposteihin (SVG ei näy kaikissa sähköpostiohjelmissa); kohta merkitty `buildReportHTML`-funktioon
-- [ ] Kevyempi video (nyt 11,6 Mt)
+- [x] Kevyempi video: korvattu selaimessa piirrettävällä animaatiolla (noin 8 kt)
 - [ ] Sivunopeus Googlen PageSpeed-rajapinnasta: tekee Tekniikka-osa-alueesta erottelevan (nyt lähes kaikki 100)
 - [ ] Somekanavat: linkit LinkedIniin ym. ja `sameAs` rakenteellisessa datassa
 - [ ] Analytiikkatapahtumat (GA4): analyysi aloitettu / valmis / sähköposti annettu
