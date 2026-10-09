@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Näkyvyysanalyysi — SEO Sales</title>
-<meta name="description" content="Selvitä sivustosi näkyvyyden tila ilmaiseksi. Saat selkeän raportin ja konkreettiset kehitysehdotukset.">
+<meta name="description" content="Miten teidän verkkosivusto näkyy hakukoneissa ja tekoälyhauissa? Maksuton analyysi antaa selkeän raportin ja konkreettiset kehitysehdotukset.">
 <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -290,8 +290,8 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
 <main id="main">
 <section class="hero">
   <div class="wrap">
-    <h1>Selvitä, miten hyvin <em>oikeat asiakkaat</em> löytävät sivustosi</h1>
-    <p>Analyysi käy sivustosi läpi hakukoneiden, tekoälyhakujen ja kävijän silmin. Saat muutamassa sekunnissa selkeän kuvan siitä, mikä on kunnossa ja mikä kannattaa korjata ensin.</p>
+    <h1>Miten hyvin <em>oikeat asiakkaat</em> löytävät teidät?</h1>
+    <p>Analyysi käy verkkosivuston läpi hakukoneiden, tekoälyhakujen ja kävijän silmin. Saatte muutamassa sekunnissa selkeän kuvan siitä, mikä on kunnossa ja mikä kannattaa korjata ensin.</p>
   </div>
 </section>
 
@@ -349,10 +349,10 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
   <div class="gate-overlay">
     <div class="gate-card">
       <h2>Avaa <em>täysi raportti</em></h2>
-      <p class="gate-sub">Näet jokaisen tarkistuksen tuloksen, selityksen ja korjausohjeen. Lähetämme raportin myös sähköpostiisi.</p>
+      <p class="gate-sub">Näette jokaisen tarkistuksen tuloksen, selityksen ja korjausohjeen. Lähetämme raportin myös sähköpostiin.</p>
       <form id="email-form">
         <label for="email-input" class="sr-only">Sähköpostiosoite</label>
-        <input type="email" id="email-input" autocomplete="email" placeholder="sähköpostiosoitteesi" required>
+        <input type="email" id="email-input" autocomplete="email" placeholder="sähköpostiosoite" required>
         <label for="phone-input" class="sr-only">Puhelinnumero (vapaaehtoinen)</label>
         <input type="tel" id="phone-input" autocomplete="tel" placeholder="puhelinnumero (vapaaehtoinen)">
         <div class="checkbox-row">
@@ -393,7 +393,7 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
 const CATS = {
   seo: {
     label: 'Hakukoneet',
-    question: 'Löytääkö Google sivustosi, ja houkutteleeko hakutulos klikkaamaan?',
+    question: 'Löytääkö Google teidät, ja houkutteleeko hakutulos klikkaamaan?',
     info: 'Tarkistamme sivun otsikon, hakutuloksessa näkyvän kuvauksen, pääotsikon, ensisijaisen osoitteen ja sisäiset linkit.',
     why: 'Hakutulos on usein ensimmäinen kosketus yritykseen. Se ratkaisee, klikkaako hakija juuri teitä.'
   },
@@ -430,12 +430,12 @@ const CATS = {
 };
 
 const catCtaTexts = {
-  seo: 'Näin parannat hakunäkyvyyttä',
-  technical: 'Katso korjattavat kohdat',
-  content: 'Näin vahvistat sisältöä',
+  seo: 'Näin parannatte hakunäkyvyyttä',
+  technical: 'Näin korjaatte tekniset puutteet',
+  content: 'Näin vahvistatte sisältöä',
   social: 'Näin jaot erottuvat',
   ai: 'Näin tekoälyhaut löytävät teidät',
-  keywords: 'Näin tavoitat oikeat asiakkaat'
+  keywords: 'Näin tavoitatte oikeat asiakkaat'
 };
 
 const STATUS_TEXT = { pass: 'Kunnossa', warn: 'Huomioitavaa', fail: 'Korjattavaa' };
@@ -481,11 +481,11 @@ $('check-form').addEventListener('submit', async (e) => {
       body: JSON.stringify({ url }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw Object.assign(new Error(data.error || 'Analyysi epäonnistui. Kokeile uudelleen.'), { code: data.code });
+    if (!res.ok) throw Object.assign(new Error(data.error || 'Analyysi epäonnistui. Voitte kokeilla uudelleen.'), { code: data.code });
     currentData = data;
     renderPreview(data);
   } catch (err) {
-    $('error').textContent = err.code ? err.message : (err.message.includes('fetch') ? 'Yhteys analyysipalveluun katkesi. Kokeile uudelleen.' : err.message);
+    $('error').textContent = err.code ? err.message : (err.message.includes('fetch') ? 'Yhteys analyysipalveluun katkesi. Voitte kokeilla uudelleen.' : err.message);
     if (err.code === 'bot_protection') {
       $('error').insertAdjacentHTML('beforeend', ' <a href="https://seosales.fi/yhteys.html" target="_blank" rel="noopener" style="color:var(--violet);font-weight:600">Varaa maksuton keskustelu &rarr;</a>');
     }
@@ -558,7 +558,7 @@ function renderPreview(data) {
   data.categories.forEach(c => {
     const col = scoreColor(c.score);
     const needsCta = c.score < 80;
-    const ctaText = catCtaTexts[c.id] || 'Selvitä lisää';
+    const ctaText = catCtaTexts[c.id] || 'Lisätietoja';
 
     const passN = c.checks.filter(ch => ch.status === 'pass').length;
     const warnN = c.checks.filter(ch => ch.status === 'warn').length;

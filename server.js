@@ -110,7 +110,7 @@ async function runAnalysis(input) {
 
 app.post('/api/check', async (req, res) => {
   if (rateLimited(req.ip)) {
-    return res.status(429).json({ error: 'Olet tehnyt useita analyysejä lyhyessä ajassa. Kokeile uudelleen hetken kuluttua.', code: 'rate_limited' });
+    return res.status(429).json({ error: 'Analyysejä on tehty useita lyhyessä ajassa. Voitte kokeilla uudelleen hetken kuluttua.', code: 'rate_limited' });
   }
 
   try {
@@ -128,7 +128,7 @@ app.post('/api/check', async (req, res) => {
   } catch (err) {
     if (err instanceof FetchError) return res.status(err.httpStatus).json({ error: err.message, code: err.code });
     console.error('Analyysivirhe:', err);
-    return res.status(500).json({ error: 'Analyysi epäonnistui odottamattomasti. Kokeile uudelleen.', code: 'internal' });
+    return res.status(500).json({ error: 'Analyysi epäonnistui odottamattomasti. Voitte kokeilla uudelleen.', code: 'internal' });
   }
 });
 
@@ -327,12 +327,12 @@ const EMAIL_RE = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z
 
 app.post('/api/lead', async (req, res) => {
   if (rateLimited(req.ip, 'lead', 5)) {
-    return res.status(429).json({ error: 'Liian monta pyyntöä. Kokeile hetken kuluttua uudelleen.', code: 'rate_limited' });
+    return res.status(429).json({ error: 'Liian monta pyyntöä. Voitte kokeilla hetken kuluttua uudelleen.', code: 'rate_limited' });
   }
   const { email, phone, newsletter, analysisId, url } = req.body || {};
   const cleanEmail = String(email || '').trim().toLowerCase();
   if (!EMAIL_RE.test(cleanEmail) || cleanEmail.length > 254) {
-    return res.status(400).json({ error: 'Tarkista sähköpostiosoite.', code: 'invalid_email' });
+    return res.status(400).json({ error: 'Sähköpostiosoite ei ole kelvollinen.', code: 'invalid_email' });
   }
   // Samaan osoitteeseen enintään 3 raporttia vuorokaudessa: palvelua ei voi käyttää kenenkään postilaatikon täyttämiseen.
   if (rateLimited(cleanEmail, 'recipient', 3, 24 * 60 * 60 * 1000)) {
@@ -631,7 +631,7 @@ function analyzeSEO($, url) {
     score += 10;
   }
 
-  return cat('seo', 'Hakukoneet', 'Löytääkö Google sivustosi, ja houkutteleeko hakutulos klikkaamaan?', score, max, checks, 3);
+  return cat('seo', 'Hakukoneet', 'Löytääkö Google teidät, ja houkutteleeko hakutulos klikkaamaan?', score, max, checks, 3);
 }
 
 function analyzeTechnical($, url, extra = {}) {
@@ -667,7 +667,7 @@ function analyzeTechnical($, url, extra = {}) {
   const robotsMeta = $('meta[name="robots"]').attr('content') || '';
   max += 10;
   if (robotsMeta.includes('noindex')) {
-    checks.push(ck('Indeksointi', 'fail', 'Sivulla on noindex — hakukoneet eivät indeksoi sivua.', 'Poista sivulta noindex-merkintä, jos haluat sen näkyvän hakutuloksissa. WordPressissä tarkista myös kohta Asetukset → Lukeminen → Hakukoneiden näkyvyys.'));
+    checks.push(ck('Indeksointi', 'fail', 'Sivulla on noindex — hakukoneet eivät indeksoi sivua.', 'Poista sivulta noindex-merkintä, jos sivun on tarkoitus näkyä hakutuloksissa. WordPressissä tarkista myös kohta Asetukset → Lukeminen → Hakukoneiden näkyvyys.'));
   } else if (extra.robots?.blocksAll('Googlebot')) {
     checks.push(ck('Indeksointi', 'fail', 'Robots.txt estää Googlea lukemasta sivustoa.', 'Poista robots.txt-tiedostosta "Disallow: /", jos haluat sivuston näkyvän hakutuloksissa.'));
   } else {
@@ -1106,7 +1106,7 @@ function trunc(s, n) {
 }
 
 function makeSummary(score) {
-  if (score >= 85) return 'Sivustosi perusta on vahva. Hienosäädöllä näkyvyydestä saa vielä enemmän irti asiakashankintaan.';
+  if (score >= 85) return 'Sivuston perusta on vahva. Hienosäädöllä näkyvyydestä saa vielä enemmän irti asiakashankintaan.';
   if (score >= 60) return 'Hyvä lähtötilanne, jossa on selkeitä kehityskohteita. Pienilläkin korjauksilla näkyvyys voi kasvaa selvästi.';
   if (score >= 35) return 'Sivustossa on paljon hyödyntämätöntä potentiaalia. Kun tärkeimmät kohdat korjataan oikeassa järjestyksessä, näkyvyys paranee nopeasti.';
   return 'Sivustossa on paljon kasvuvaraa. Perusteiden korjaaminen on nopein tapa saada lisää näkyvyyttä ja yhteydenottoja.';
@@ -1118,7 +1118,7 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: 'Virheellinen pyyntö.', code: 'bad_request' });
   }
   console.error('Odottamaton virhe:', err);
-  res.status(500).json({ error: 'Palvelussa tapahtui virhe. Kokeile uudelleen.', code: 'internal' });
+  res.status(500).json({ error: 'Palvelussa tapahtui virhe. Voitte kokeilla uudelleen.', code: 'internal' });
 });
 
 app.listen(PORT, () => {

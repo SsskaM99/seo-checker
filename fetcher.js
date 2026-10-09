@@ -36,7 +36,7 @@ function normalizeUrl(input) {
   if (!hadProtocol) raw = 'https://' + raw;
   let u;
   try { u = new URL(raw); } catch {
-    throw new FetchError('invalid_url', 'Osoite ei ole kelvollinen. Tarkista kirjoitusasu, esimerkiksi yritys.fi.', 400);
+    throw new FetchError('invalid_url', 'Osoite ei ole kelvollinen. Oikea muoto on esimerkiksi yritys.fi.', 400);
   }
   if (!['http:', 'https:'].includes(u.protocol)) {
     throw new FetchError('invalid_url', 'Analysoida voi vain verkkosivuja (http- tai https-osoitteita).', 400);
@@ -98,7 +98,7 @@ async function assertPublicHost(hostname) {
   if (net.isIP(host)) addrs = [{ address: host }];
   else {
     try { addrs = await dns.lookup(host, { all: true }); }
-    catch { throw new FetchError('dns', `Osoitetta ${host} ei löytynyt. Tarkista kirjoitusasu.`, 400); }
+    catch { throw new FetchError('dns', `Osoitetta ${host} ei löytynyt. Kannattaa tarkistaa kirjoitusasu.`, 400); }
   }
   if (!addrs.length || addrs.some(a => isPrivateIp(a.address))) {
     throw new FetchError('blocked_address', 'Tätä osoitetta ei voi analysoida.', 400);
@@ -182,18 +182,18 @@ async function fetchFollow(startUrl, userAgent, signal) {
 function networkError(err, host) {
   if (err instanceof FetchError) return err;
   if (err.name === 'TimeoutError' || err.name === 'AbortError') {
-    return new FetchError('timeout', `Sivuston ${host} lataus kesti yli 15 sekuntia. Kokeile hetken kuluttua uudelleen.`, 504);
+    return new FetchError('timeout', `Sivuston ${host} lataus kesti yli 15 sekuntia. Voitte kokeilla hetken kuluttua uudelleen.`, 504);
   }
   const code = err.cause?.code || '';
   if (code === 'EBLOCKED') return new FetchError('blocked_address', 'Tätä osoitetta ei voi analysoida.', 400);
-  if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return new FetchError('dns', `Osoitetta ${host} ei löytynyt. Tarkista kirjoitusasu.`, 400);
+  if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return new FetchError('dns', `Osoitetta ${host} ei löytynyt. Kannattaa tarkistaa kirjoitusasu.`, 400);
   if (code.startsWith('CERT_') || code.includes('SSL') || code.includes('TLS') || code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' || code === 'DEPTH_ZERO_SELF_SIGNED_CERT') {
     return new FetchError('tls', `Sivuston ${host} suojausvarmenne ei ole kunnossa, joten selaimet varoittavat kävijöitä. Tämä kannattaa korjata ensimmäisenä.`);
   }
   if (code === 'ECONNREFUSED' || code === 'ECONNRESET' || code === 'UND_ERR_SOCKET') {
-    return new FetchError('fetch_failed', `Sivusto ${host} ei vastannut. Tarkista, että sivusto on toiminnassa.`);
+    return new FetchError('fetch_failed', `Sivusto ${host} ei vastannut. Kannattaa tarkistaa, että sivusto on toiminnassa.`);
   }
-  return new FetchError('fetch_failed', `Sivustoa ${host} ei voitu avata. Tarkista osoite ja kokeile uudelleen.`);
+  return new FetchError('fetch_failed', `Sivustoa ${host} ei voitu avata. Kannattaa tarkistaa osoite ja kokeilla uudelleen.`);
 }
 
 async function fetchPage(input) {
@@ -233,10 +233,10 @@ async function fetchPage(input) {
       `Sivusto ${host} käyttää bottisuojausta (${protection}), joka estää automaattiset tarkistukset. Se on isoilla sivustoilla yleistä eikä kerro näkyvyydestä mitään. Voimme käydä sivuston läpi yhdessä keskustelussa.`);
   }
   if (res.status === 404 || res.status === 410) {
-    throw new FetchError('not_found', 'Sivua ei löytynyt (404). Tarkista osoite tai kokeile sivuston etusivua.');
+    throw new FetchError('not_found', 'Sivua ei löytynyt (404). Kannattaa tarkistaa osoite tai kokeilla sivuston etusivua.');
   }
   if (res.status >= 500) {
-    throw new FetchError('server_error', `Sivuston palvelin vastasi virheellä (${res.status}). Kokeile hetken kuluttua uudelleen.`);
+    throw new FetchError('server_error', `Sivuston palvelin vastasi virheellä (${res.status}). Voitte kokeilla hetken kuluttua uudelleen.`);
   }
   if (!res.ok) {
     throw new FetchError('http_error', `Sivusto ei päästänyt analyysiä sisään (virhekoodi ${res.status}).`);
