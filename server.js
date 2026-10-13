@@ -179,44 +179,136 @@ function hostOf(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
 }
 
+// Sähköpostien yhteiset osat. Kuvat haetaan seosales.fi:stä (kansio email/), koska SVG ei näy kaikissa sähköpostiohjelmissa.
+const EMAIL = {
+  assets: 'https://seosales.fi/email/',
+  ctaUrl: 'https://seosales.fi/yhteys.html',
+  privacyUrl: 'https://seosales.fi/tietosuojaseloste.html',
+  contact: { name: 'Jani Lammi', phone: '+358 45 131 4343', tel: '+358451314343', email: 'janio.lammi@gmail.com' },
+};
+// Brändifontit näkyvät esimerkiksi Apple Mailissa; Gmail ja Outlook käyttävät varafontteja.
+const FONT_BODY = "Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const FONT_HEAD = "'Space Grotesk',Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const FONT_MONO = "'IBM Plex Mono',Consolas,'Courier New',monospace";
+
+function emailShell(preheader, rows) {
+  return `<!DOCTYPE html>
+<html lang="fi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Manrope:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet"></head>
+<body style="margin:0;padding:0;background:#F5F5F7;font-family:${FONT_BODY}">
+<div style="display:none;max-height:0;overflow:hidden">${preheader}</div>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F7;padding:24px 0">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#FFFFFF;border-radius:12px;overflow:hidden">
+${rows}
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
+const emailLogo = (align = 'center') =>
+  `<img src="${EMAIL.assets}seo-sales-logo-tumma.png" width="146" height="22" alt="SEO Sales" style="display:block;${align === 'center' ? 'margin:0 auto;' : ''}border:0;color:#FFFFFF;font-family:${FONT_HEAD};font-size:18px;font-weight:700">`;
+
+// Yläotsake kuten sivuston osioissa: turkoosi viiva ja tunniste.
+const eyebrow = (text, color = '#0C847C') =>
+  `<div style="font-family:${FONT_MONO};font-size:11px;font-weight:500;color:${color};text-transform:uppercase;letter-spacing:0.12em"><span style="display:inline-block;width:22px;height:2px;background:#12B5AA;vertical-align:middle;margin:-2px 10px 0 0"></span>${text}</div>`;
+
+function contactBlock(intro) {
+  const c = EMAIL.contact;
+  return `
+  <tr><td style="padding:32px 40px 36px;font-size:15px;color:#34333C;line-height:1.6">
+    <p style="margin:0 0 18px">${intro}</p>
+    <p style="margin:0 0 14px">Terveisin</p>
+    <table cellpadding="0" cellspacing="0"><tr>
+      <td width="72" valign="middle"><img src="${EMAIL.assets}jani-lammi.png" width="72" height="72" alt="${esc(c.name)}" style="display:block;border:0;border-radius:50%"></td>
+      <td valign="middle" style="padding-left:16px">
+        <div style="font-family:${FONT_HEAD};font-size:16px;font-weight:700;color:#17161C">${esc(c.name)}</div>
+        <div style="font-size:13px;color:#6B6A73">SEO Sales</div>
+        <div style="font-size:14px;margin-top:6px"><a href="tel:${c.tel}" style="color:#17161C;text-decoration:none">${c.phone}</a><br><a href="mailto:${c.email}" style="color:#0C847C;text-decoration:underline">${c.email}</a></div>
+      </td>
+    </tr></table>
+  </td></tr>`;
+}
+
+function emailFooter(reason) {
+  return `
+  <tr><td style="padding:20px 40px 24px;border-top:1px solid #E8E8EC;text-align:center;font-size:12px;color:#6B6A73;line-height:1.6">
+    <strong style="color:#34333C">SEO Sales</strong> &middot; Y-tunnus 3625027-1 &middot; <a href="https://seosales.fi" style="color:#0C847C;text-decoration:underline">seosales.fi</a> &middot; <a href="${EMAIL.privacyUrl}" style="color:#0C847C;text-decoration:underline">Tietosuojaseloste</a><br>
+    ${reason}
+  </td></tr>`;
+}
+
+// Kehityskohteet: ensin korjattavat, sitten huomioitavat, kumpikin liiketoiminnallisen painoarvon mukaan.
+// Sama tarkistus voi esiintyä kahdella osa-alueella (esim. Sisällön määrä); viestissä se näytetään kerran.
+function prioritizedIssues(categories) {
+  const cats = Array.isArray(categories) ? categories : [];
+  const all = cats.flatMap(c => (c.checks || []).map(ch => ({ ...ch, catLabel: c.label })));
+  const seen = new Set();
+  return {
+    issues: [...byImpact(all.filter(c => c.status === 'fail')), ...byImpact(all.filter(c => c.status === 'warn'))]
+      .filter(ch => !seen.has(ch.label) && seen.add(ch.label)),
+    passes: all.filter(c => c.status === 'pass'),
+  };
+}
+
+const STATUS_FI = { fail: 'Korjattavaa', warn: 'Huomioitavaa' };
+const statusHex = s => s === 'fail' ? '#C0392B' : '#A35200';
+
+// Numeroitu kehityskohde (01, 02 …); korjausohje mukaan, jos withTip.
+function numberedIssue(ch, i, withTip) {
+  return `
+  <tr><td style="padding:0 40px">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E8EC"><tr>
+      <td width="40" valign="top" style="padding:18px 0 16px;font-family:${FONT_MONO};font-size:13px;font-weight:500;color:#0C847C">${String(i + 1).padStart(2, '0')}</td>
+      <td valign="top" style="padding:18px 0 16px">
+        <div style="font-size:11px;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px"><span style="font-weight:600;color:${statusHex(ch.status)}">${STATUS_FI[ch.status]}</span><span style="color:#6B6A73"> &middot; ${esc(ch.catLabel)}</span></div>
+        <div style="font-family:${FONT_HEAD};font-size:16px;font-weight:600;color:#17161C;margin-bottom:4px">${esc(ch.label)}</div>
+        <div style="font-size:15px;color:#34333C;line-height:1.6">${esc(ch.message)}</div>
+        ${withTip && ch.tip ? `<div style="font-size:14px;color:#34333C;margin-top:8px;line-height:1.6"><strong style="color:#17161C">Miten korjata:</strong> ${esc(ch.tip)}</div>` : ''}
+      </td>
+    </tr></table>
+  </td></tr>`;
+}
+
 function buildReportHTML({ url, score, summary, categories, platform }) {
   const date = new Date().toLocaleDateString('fi-FI');
   const host = hostOf(url);
   const cats = Array.isArray(categories) ? categories : [];
-  const allChecks = cats.flatMap(c => (c.checks || []).map(ch => ({ ...ch, catLabel: c.label })));
-  const fails = byImpact(allChecks.filter(c => c.status === 'fail'));
-  const warns = byImpact(allChecks.filter(c => c.status === 'warn'));
-  const passes = allChecks.filter(c => c.status === 'pass');
-  const CTA_URL = 'https://seosales.fi/yhteys.html';
+  const { issues, passes } = prioritizedIssues(cats);
+  const top = issues.slice(0, 5), rest = issues.slice(5);
 
-  // Kaksi kolmen sarakkeen riviä, jotta otsikot mahtuvat myös puhelimen näytölle.
+  // Osa-alueet kahtena kolmen sarakkeen rivinä; tilan väri vain ohuessa palkissa.
   const catCell = c => `
-    <td style="text-align:center;padding:12px 4px;width:33%">
-      <div style="font-size:26px;font-weight:700;color:${scoreTextHex(c.score)}">${c.score}</div>
-      <div style="font-size:11px;color:#6B6A73;text-transform:uppercase;letter-spacing:0.05em;margin-top:4px">${esc(c.label)}</div>
+    <td style="padding:14px 10px;width:33%;vertical-align:top">
+      <div style="font-family:${FONT_HEAD};font-size:24px;font-weight:700;color:#17161C;line-height:1">${c.score}</div>
+      <div style="font-size:11px;color:#6B6A73;text-transform:uppercase;letter-spacing:0.05em;margin-top:6px">${esc(c.label)}</div>
+      <div style="height:3px;background:#E8E8EC;border-radius:2px;margin-top:8px;font-size:0;line-height:0"><div style="width:${c.score}%;height:3px;background:${scoreHex(c.score)};border-radius:2px;font-size:0;line-height:0"></div></div>
     </td>`;
   const catScoreBlock = [cats.slice(0, 3), cats.slice(3)].filter(r => r.length).map(r => '<tr>' + r.map(catCell).join('') + '</tr>').join('');
 
-  const issueBlock = (items, sectionTitle, titleColor, lineColor) => {
-    if (!items.length) return '';
-    return `
-  <tr><td style="padding:28px 40px 4px">
-    <h2 style="font-size:18px;font-weight:600;color:${titleColor};margin:0">${sectionTitle} (${items.length})</h2>
-  </td></tr>` + items.map(ch => `
-  <tr><td style="padding:14px 40px 4px">
-    <div style="border-left:3px solid ${lineColor};padding-left:16px">
-      <div style="font-size:11px;color:#6B6A73;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">${esc(ch.catLabel)}</div>
-      <div style="font-size:15px;font-weight:600;color:#17161C;margin-bottom:4px">${esc(ch.label)}</div>
-      <div style="font-size:15px;color:#34333C;line-height:1.6">${esc(ch.message)}</div>
-      ${ch.tip ? `<div style="font-size:14px;color:#34333C;margin-top:6px;line-height:1.6"><strong style="color:#17161C">Miten korjata:</strong> ${esc(ch.tip)}</div>` : ''}
-    </div>
-  </td></tr>`).join('');
-  };
+  const topBlock = top.length ? `
+  <tr><td style="padding:32px 40px 6px">
+    ${eyebrow('Tärkeimmät kehityskohteet')}
+    <h2 style="font-family:${FONT_HEAD};font-size:22px;font-weight:600;color:#17161C;letter-spacing:-0.02em;margin:12px 0 14px">Näistä kannattaa aloittaa</h2>
+  </td></tr>
+  ${top.map((ch, i) => numberedIssue(ch, i, true)).join('')}
+  <tr><td style="padding:6px 40px 0">
+    <a href="${EMAIL.ctaUrl}" style="font-size:14px;color:#6D4AFF;text-decoration:none;font-weight:600">Haluatko, ett&auml; k&auml;ymme n&auml;m&auml; yhdess&auml; l&auml;pi? Varaa maksuton keskustelu &rarr;</a>
+  </td></tr>` : '';
 
-  // Yksi kevyt kehotus korjattavien jälkeen; varsinainen CTA on viestin lopussa.
-  const inlineCta = fails.length ? `
-  <tr><td style="padding:16px 40px 0">
-    <a href="${CTA_URL}" style="font-size:14px;color:#6D4AFF;text-decoration:none;font-weight:600">Haluatko, ett&auml; k&auml;ymme n&auml;m&auml; yhdess&auml; l&auml;pi? Varaa maksuton keskustelu &rarr;</a>
+  const restBlock = rest.length ? `
+  <tr><td style="padding:32px 40px 10px">
+    ${eyebrow(`Muut havainnot (${rest.length})`)}
+  </td></tr>
+  <tr><td style="padding:0 40px">
+    <table width="100%" cellpadding="0" cellspacing="0">
+    ${rest.map(ch => `
+      <tr><td style="padding:10px 0;border-top:1px solid #E8E8EC;font-size:14px;color:#34333C;line-height:1.55">
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${statusHex(ch.status)};margin:0 8px 1px 0"></span><strong style="color:#17161C">${esc(ch.label)}</strong> &ndash; ${esc(ch.message)}
+      </td></tr>`).join('')}
+    </table>
+    <p style="margin:12px 0 0;font-size:14px;color:#6B6A73;line-height:1.55">K&auml;ymme mielell&auml;mme l&auml;pi my&ouml;s n&auml;m&auml; kohdat ja niiden korjaamisen.</p>
   </td></tr>` : '';
 
   // Esimerkit lauseen keskelle: pieni alkukirjain, paitsi lyhenteissä (HTTPS).
@@ -226,28 +318,23 @@ function buildReportHTML({ url, score, summary, categories, platform }) {
   });
   const exampleText = passExamples.length > 1 ? passExamples.slice(0, -1).join(', ') + ' ja ' + passExamples.at(-1) : passExamples[0];
   const passBlock = passes.length ? `
-  <tr><td style="padding:28px 40px 4px">
-    <h2 style="font-size:18px;font-weight:600;color:#1B7A43;margin:0">Kunnossa (${passes.length})</h2>
-  </td></tr>
-  <tr><td style="padding:8px 40px 0;font-size:15px;color:#34333C;line-height:1.6">
-    ${passes.length} tarkistusta on kunnossa, muun muassa ${exampleText}.
+  <tr><td style="padding:32px 40px 0">
+    ${eyebrow(`Kunnossa (${passes.length})`)}
+    <p style="margin:12px 0 0;font-size:15px;color:#34333C;line-height:1.6">${passes.length} tarkistusta on kunnossa, muun muassa ${exampleText}.</p>
   </td></tr>` : '';
 
-  return `<!DOCTYPE html>
-<html lang="fi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F5F5F7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
-<div style="display:none;max-height:0;overflow:hidden">Sivuston ${esc(host)} n&auml;kyvyysanalyysi: ${score}/100. T&auml;rkeimm&auml;t kehityskohteet ja korjausohjeet.</div>
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F7;padding:24px 0">
-<tr><td align="center">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+  const intro = issues.length
+    ? 'Alla ovat ensin t&auml;rkeimm&auml;t kehityskohteet korjausohjeineen ja sitten muut havainnot lyhyesti.'
+    : 'Kehityskohteita ei l&ouml;ytynyt, joten perusta on kunnossa.';
 
-  <!-- Yläosa: sama tumma paneeli kuin raporttisivulla. LOGO: korvaa tekstin PNG-logolla, kun se on saatavilla. -->
+  return emailShell(`Sivuston ${esc(host)} n&auml;kyvyysanalyysi: ${score}/100. T&auml;rkeimm&auml;t kehityskohteet ja korjausohjeet.`, `
+  <!-- Yläosa: sama tumma paneeli kuin raporttisivulla -->
   <tr><td style="background:#17161C;padding:32px 40px 36px;text-align:center">
-    <div style="font-size:18px;font-weight:700;color:#FFFFFF;letter-spacing:-0.02em">SEO Sales</div>
-    <div style="font-size:11px;color:#25D9C6;text-transform:uppercase;letter-spacing:0.12em;margin-top:20px">N&auml;kyvyysanalyysi</div>
+    ${emailLogo()}
+    <div style="font-family:${FONT_MONO};font-size:11px;color:#25D9C6;text-transform:uppercase;letter-spacing:0.12em;margin-top:26px">N&auml;kyvyysanalyysi</div>
     <div style="font-size:14px;color:#FFFFFF;margin-top:8px">${esc(url)} <span style="color:#C6C2D1">&middot; ${date}${platform ? ` &middot; ${esc(platform)}` : ''}</span></div>
     <div style="display:inline-block;width:100px;height:100px;border-radius:50%;border:6px solid ${scoreHex(score)};text-align:center;line-height:100px;margin-top:22px">
-      <span style="font-size:36px;font-weight:700;color:#FFFFFF">${score}</span>
+      <span style="font-family:${FONT_HEAD};font-size:36px;font-weight:700;color:#FFFFFF">${score}</span>
     </div>
     <div style="font-size:12px;font-weight:600;color:${scoreDarkHex(score)};text-transform:uppercase;letter-spacing:0.08em;margin-top:12px">${scoreLabel(score)}</div>
     ${summary ? `<div style="font-size:15px;color:#D8D5E0;margin:10px auto 0;line-height:1.6;max-width:440px">${esc(summary)}</div>` : ''}
@@ -256,45 +343,32 @@ function buildReportHTML({ url, score, summary, categories, platform }) {
   <!-- Tervehdys -->
   <tr><td style="padding:32px 40px 4px;font-size:16px;color:#34333C;line-height:1.65">
     <p style="margin:0 0 14px">Hei,</p>
-    <p style="margin:0">kiitos, että teit näkyvyysanalyysin. Tässä sivuston <strong style="color:#17161C">${esc(host)}</strong> tulokset osa-alueittain ja korjausohjeet. ${fails.length ? 'Kannattaa aloittaa korjattavista kohdista, sillä ne vaikuttavat näkyvyyteen eniten.' : 'Korjattavia puutteita ei löytynyt, joten voit keskittyä huomioitaviin kohtiin.'}</p>
+    <p style="margin:0">kiitos, ett&auml; teit n&auml;kyvyysanalyysin. T&auml;ss&auml; sivuston <strong style="color:#17161C">${esc(host)}</strong> tulokset. ${intro}</p>
   </td></tr>
 
   <!-- Osa-alueiden pisteet -->
-  <tr><td style="padding:20px 24px 4px">
+  <tr><td style="padding:22px 30px 0">
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F7;border-radius:10px">
       ${catScoreBlock}
     </table>
   </td></tr>
 
-  ${issueBlock(fails, 'Korjattavaa', '#C0392B', '#C0392B')}
-  ${inlineCta}
-  ${issueBlock(warns, 'Huomioitavaa', '#A35200', '#E67E22')}
+  ${topBlock}
+  ${restBlock}
   ${passBlock}
 
-  <!-- Allekirjoitus -->
-  <tr><td style="padding:32px 40px 36px;font-size:15px;color:#34333C;line-height:1.6">
-    <p style="margin:0 0 18px">Jos jokin tuloksista herättää kysymyksiä, voit vastata suoraan tähän viestiin.</p>
-    <p style="margin:0">Terveisin<br><strong style="color:#17161C">Jani</strong><br>SEO Sales</p>
-  </td></tr>
+  ${contactBlock('Jos jokin tuloksista her&auml;tt&auml;&auml; kysymyksi&auml;, voit vastata suoraan t&auml;h&auml;n viestiin tai soittaa minulle.')}
 
   <!-- CTA -->
   <tr><td style="padding:36px 40px;text-align:center;background:#17161C">
-    <div style="font-size:22px;font-weight:700;color:#FFFFFF;margin-bottom:8px">Tehd&auml;&auml;n n&auml;kyvyydest&auml; <span style="color:#25D9C6">myynti&auml;</span></div>
+    <div style="font-family:${FONT_HEAD};font-size:22px;font-weight:700;color:#FFFFFF;margin-bottom:8px">Tehd&auml;&auml;n n&auml;kyvyydest&auml; <span style="color:#25D9C6">myynti&auml;</span></div>
     <div style="font-size:15px;color:#C6C2D1;line-height:1.6;margin:0 auto 22px;max-width:440px">
       Analyysi n&auml;ytt&auml;&auml; l&auml;ht&ouml;tilanteen. Keskustelussa katsomme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;.
     </div>
-    <a href="${CTA_URL}" style="display:inline-block;background:#FFFFFF;color:#17161C;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 32px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
+    <a href="${EMAIL.ctaUrl}" style="display:inline-block;background:#FFFFFF;color:#17161C;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 32px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
   </td></tr>
 
-  <!-- Footer -->
-  <tr><td style="padding:18px 40px;text-align:center;font-size:12px;color:#6B6A73;line-height:1.55">
-    Sait t&auml;m&auml;n raportin, koska pyysit sit&auml; n&auml;kyvyysanalyysiss&auml; sivulla <a href="https://seosales.fi" style="color:#0C847C;text-decoration:underline">seosales.fi</a>.
-  </td></tr>
-
-</table>
-</td></tr>
-</table>
-</body></html>`;
+  ${emailFooter('Sait t&auml;m&auml;n raportin, koska pyysit sit&auml; n&auml;kyvyysanalyysiss&auml; sivulla seosales.fi.')}`);
 }
 
 // Sähköpostin lähetys Resendillä. Ilman avainta viestit tallennetaan outbox-kansioon esikatseltaviksi.
@@ -406,65 +480,65 @@ app.post('/api/lead', async (req, res) => {
 });
 
 
-// Muistutusviesti noin kolme päivää analyysin jälkeen.
+// Muistutusviesti noin kolme päivää analyysin jälkeen: kolme tärkeintä kohdetta, lyhyet vastaukset
+// tavallisimpiin kysymyksiin ja kutsu keskusteluun.
+// LUONNOS: Hyvä tietää -vastaukset odottavat Janin tarkistusta.
+const FOLLOWUP_FAQ = [
+  ['Kuinka nopeasti korjaukset näkyvät Googlessa?',
+   'Hakutuloksen otsikkoon ja kuvaukseen tehdyt muutokset päivittyvät yleensä muutamassa päivässä tai viikossa, kun Google lukee sivun uudelleen. Sisältöön ja rakenteeseen tehtyjen muutosten vaikutus näkyy tavallisesti muutaman viikon tai kuukauden kuluessa. Google Search Consolessa voit pyytää sivun uudelleenlukemista heti korjauksen jälkeen.'],
+  ['Auttavatko samat korjaukset tekoälyhauissa?',
+   'Suurelta osin kyllä. ChatGPT, Gemini ja muut tekoälyhaut hyödyntävät samoja asioita kuin Google: selkeää sisältöä, rakenteellista dataa ja ajantasaisia yritystietoja. Kun sivu vastaa suoraan asiakkaiden kysymyksiin, se on hyvä lähde sekä hakukoneille että tekoälylle.'],
+  ['Voiko korjaukset tehdä itse?',
+   'Monet niistä voi. Otsikot, kuvaukset ja tekstit onnistuvat useimmissa julkaisujärjestelmissä, kuten WordPressissä, ilman koodausta. Tekniset muutokset, kuten palvelimen nopeus tai rakenteellinen data, kannattaa usein antaa sivuston kehittäjälle. Tärkeintä on tehdä korjaukset oikeassa järjestyksessä: ensin ne, jotka vaikuttavat eniten siihen, löytävätkö oikeat asiakkaat yrityksesi.'],
+];
+
 function buildFollowupHTML({ url, score, categories }) {
-  const CTA_URL = 'https://seosales.fi/yhteys.html';
   const host = hostOf(url);
-  const cats = Array.isArray(categories) ? categories : [];
-  const allChecks = cats.flatMap(c => (c.checks || []).map(ch => ({ ...ch, catLabel: c.label })));
-  const top = [...byImpact(allChecks.filter(c => c.status === 'fail')), ...byImpact(allChecks.filter(c => c.status === 'warn'))].slice(0, 3);
+  const top = prioritizedIssues(categories).issues.slice(0, 3);
 
   const topBlock = top.length ? `
-  <tr><td style="padding:8px 40px 4px">
-    <div style="font-size:11px;font-weight:600;color:#0C847C;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">T&auml;rkeimm&auml;t kehityskohteet</div>
-    ${top.map(ch => `
-    <div style="border-left:3px solid ${ch.status === 'fail' ? '#C0392B' : '#E67E22'};padding:2px 0 2px 14px;margin-bottom:12px">
-      <div style="font-size:15px;font-weight:600;color:#17161C">${esc(ch.label)}</div>
-      <div style="font-size:14px;color:#34333C;line-height:1.55">${esc(ch.message)}</div>
-    </div>`).join('')}
-  </td></tr>` : '';
+  <tr><td style="padding:8px 40px 6px">
+    ${eyebrow('Tärkeimmät kehityskohteet')}
+  </td></tr>
+  ${top.map((ch, i) => numberedIssue(ch, i, false)).join('')}` : '';
 
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#F5F5F7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
-<div style="display:none;max-height:0;overflow:hidden">Katsotaanko yhdess&auml;, mit&auml; tuloksista kannattaa tehd&auml; ensin?</div>
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F7;padding:24px 0">
-<tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+  const faqBlock = `
+  <tr><td style="padding:24px 40px 0">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F7;border-radius:10px"><tr><td style="padding:24px 24px 6px">
+      ${eyebrow('Hyvä tietää')}
+      ${FOLLOWUP_FAQ.map(([q, a]) => `
+      <div style="font-family:${FONT_HEAD};font-size:16px;font-weight:600;color:#17161C;margin:16px 0 4px">${esc(q)}</div>
+      <div style="font-size:15px;color:#34333C;line-height:1.6;margin-bottom:12px">${esc(a)}</div>`).join('')}
+    </td></tr></table>
+  </td></tr>`;
 
-  <tr><td style="padding:28px 40px 0">
-    <div style="font-size:17px;font-weight:700;color:#17161C;letter-spacing:-0.02em">SEO Sales</div>
+  return emailShell('Katsotaanko yhdess&auml;, mit&auml; tuloksista kannattaa tehd&auml; ensin?', `
+  <!-- Yläosa: kevyempi versio raportin tummasta paneelista -->
+  <tr><td style="background:#17161C;padding:22px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td valign="middle">${emailLogo('left')}</td>
+      <td valign="middle" align="right" style="font-family:${FONT_MONO};font-size:12px;color:#C6C2D1;letter-spacing:0.04em">${esc(host)} &middot; <span style="color:${scoreDarkHex(score)};font-weight:500">${score}/100</span></td>
+    </tr></table>
   </td></tr>
 
-  <tr><td style="padding:24px 40px 8px;font-size:16px;color:#34333C;line-height:1.65">
+  <tr><td style="padding:32px 40px 16px;font-size:16px;color:#34333C;line-height:1.65">
     <p style="margin:0 0 16px">Hei,</p>
-    <p style="margin:0 0 16px">kävit muutama päivä sitten läpi sivuston <strong style="color:#17161C">${esc(host)}</strong> näkyvyyttä. Kokonaispisteet olivat <strong style="color:${scoreTextHex(score)}">${score}/100</strong>.</p>
+    <p style="margin:0">k&auml;vit muutama p&auml;iv&auml; sitten l&auml;pi sivuston <strong style="color:#17161C">${esc(host)}</strong> n&auml;kyvyytt&auml;. Kokonaispisteet olivat <strong style="color:${scoreTextHex(score)}">${score}/100</strong>.${top.length ? ' N&auml;m&auml; kolme kohtaa vaikuttavat tulokseen eniten:' : ''}</p>
   </td></tr>
 
   ${topBlock}
+  ${faqBlock}
 
-  <tr><td style="padding:12px 40px 8px;font-size:16px;color:#34333C;line-height:1.65">
-    <p style="margin:0 0 16px">Raportti näyttää, missä mennään. Seuraava kysymys on, mitkä korjaukset tuovat teidän yritykselle eniten asiakkaita ja missä järjestyksessä ne kannattaa tehdä.</p>
-    <p style="margin:0">Haluatko, että katsotaan tulokset yhdessä? Lyhyessä keskustelussa käymme läpi tärkeimmät kohdat ja sovimme, mistä kannattaa aloittaa.</p>
+  <tr><td style="padding:28px 40px 4px;font-size:16px;color:#34333C;line-height:1.65">
+    <p style="margin:0 0 16px">Raportti n&auml;ytt&auml;&auml; l&auml;ht&ouml;tilanteen. Keskustelussa katsomme yhdess&auml;, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;. Keskustelu on maksuton eik&auml; sido mihink&auml;&auml;n.</p>
+  </td></tr>
+  <tr><td style="padding:12px 40px 0">
+    <a href="${EMAIL.ctaUrl}" style="display:inline-block;background:#17161C;color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
   </td></tr>
 
-  <tr><td style="padding:24px 40px 8px">
-    <a href="${CTA_URL}" style="display:inline-block;background:#17161C;color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
-  </td></tr>
+  ${contactBlock('Voit my&ouml;s vastata suoraan t&auml;h&auml;n viestiin tai soittaa minulle.')}
 
-  <tr><td style="padding:16px 40px 32px;font-size:15px;color:#34333C;line-height:1.6">
-    <p style="margin:0 0 20px">Voit myös vastata suoraan tähän viestiin.</p>
-    <p style="margin:0">Terveisin<br><strong style="color:#17161C">Jani</strong><br>SEO Sales</p>
-  </td></tr>
-
-  <tr><td style="padding:18px 40px;border-top:1.5px solid #E8E8EC;font-size:12px;color:#6B6A73;line-height:1.55">
-    Saat tämän viestin, koska teit näkyvyysanalyysin sivulla <a href="https://seosales.fi" style="color:#0C847C;text-decoration:underline">seosales.fi</a>. Muistutus lähetetään vain kerran.
-  </td></tr>
-
-</table>
-</td></tr>
-</table>
-</body></html>`;
+  ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivulla seosales.fi. T&auml;m&auml; on ainoa muistutus, eik&auml; muita viestej&auml; l&auml;hetet&auml; ilman lupaasi.')}`);
 }
 
 // Esikatselut vain kehityskäyttöön: tuotannossa ne tekisivät analyysejä ilman käyttörajoitusta.

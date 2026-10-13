@@ -38,7 +38,7 @@ Päivitetty 7.10.2026.
 
 ## Lanseerauksen jälkeen (suositellaan)
 
-- [ ] PNG-logo sähköposteihin (SVG ei näy kaikissa sähköpostiohjelmissa); kohta merkitty `buildReportHTML`-funktioon
+- [x] PNG-logo ja Janin kuva sähköposteihin. Kuvat haetaan osoitteesta seosales.fi/email/, joten livesivuston on oltava julkaistu ennen ensimmäisiä viestejä.
 - [x] Kevyempi video: korvattu selaimessa piirrettävällä animaatiolla (noin 8 kt)
 - [ ] Sivunopeus Googlen PageSpeed-rajapinnasta: tekee Tekniikka-osa-alueesta erottelevan (nyt lähes kaikki 100)
 - [ ] Somekanavat: linkit LinkedIniin ym. ja `sameAs` rakenteellisessa datassa
