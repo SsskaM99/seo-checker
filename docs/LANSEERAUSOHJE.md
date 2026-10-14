@@ -29,7 +29,7 @@ Näkyvyysanalyysi on maksuton työkalu, jolla kuka tahansa voi tarkistaa oman ve
 | Hakukoneet | 3 | sivun otsikko, hakutuloksen kuvaus, pääotsikko, canonical, sisäiset linkit |
 | Tekniikka | 2 | HTTPS, mobiili, indeksointi, vasteaika, robots.txt, sivukartta |
 | Sisältö | 2 | tekstin määrä, otsikkorakenne, kuvien alt-tekstit |
-| Somenäkyvyys | 1 | miltä linkki näyttää LinkedInissä ja viestisovelluksissa (Open Graph) |
+| Somejaot | 1 | miltä linkki näyttää, kun se jaetaan LinkedInissä, Facebookissa tai WhatsAppissa (Open Graph, X-jakokortti); ei mittaa somekanavien seuraajia tai julkaisuja |
 | Tekoälyhaut | 2 | rakenteellinen data, tekoälybottien pääsy, llms.txt, yritystiedot, näkyykö sisältö ilman JavaScriptiä |
 | Avainsanat | 2 | vastaako hakutulos sisältöä, houkutteleeko sivu vääriä kävijöitä, onko viesti selkeä, ohjaako sivu yhteydenottoon |
 

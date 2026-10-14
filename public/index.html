@@ -78,7 +78,7 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .intro-title{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--turq-dark);margin-bottom:18px}
 .intro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:960px;margin:0 auto}
 .intro-item{background:var(--paper);border-radius:var(--r-md);padding:22px 20px}
-.intro-item .cat-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.intro-item .cat-label{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
 .intro-item h3{font-size:17px;line-height:1.3;margin-bottom:8px}
 .intro-item p{font-size:14px;color:var(--text);line-height:1.6}
 
@@ -128,7 +128,7 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 /* Category cards */
 .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:24px 0 32px;max-width:960px;margin:0 auto}
 .cat-card{position:relative;background:var(--paper);border-radius:var(--r-md);padding:24px 20px;text-align:center}
-.cat-card .cat-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.cat-card .cat-label{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
 .cat-card .cat-score{font-family:var(--display);font-size:36px;font-weight:700;line-height:1;margin-bottom:6px}
 .cat-bar{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
 .cat-bar span{display:block;height:100%;border-radius:2px;transition:width 1s cubic-bezier(.4,0,.2,1)}
@@ -175,6 +175,9 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .gate-card h2{font-size:22px;margin-bottom:6px}
 .gate-card h2 em{color:var(--turq-dark);font-style:normal}
 .gate-card .gate-sub{font-size:15px;color:var(--muted);margin-bottom:20px;line-height:1.55}
+.gate-list{list-style:none;text-align:left;max-width:320px;margin:14px auto 22px;font-size:15px;color:var(--text);line-height:1.5}
+.gate-list li{position:relative;padding:5px 0 5px 28px}
+.gate-list li::before{content:"";position:absolute;left:4px;top:.68em;width:11px;height:6px;border-left:2px solid var(--turq);border-bottom:2px solid var(--turq);transform:rotate(-45deg)}
 .gate-card input[type="email"]{
   width:100%;font-family:var(--sans);font-size:15px;padding:13px 16px;
   border:1.5px solid var(--line-2);border-radius:var(--r-sm);
@@ -253,8 +256,11 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
 /* Saavutettavuus */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 :focus-visible{outline:2px solid var(--violet);outline-offset:2px}
-.motion-toggle{position:absolute;right:14px;bottom:14px;z-index:3;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-on-dark);background:rgba(16,15,20,.55);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:6px 12px;cursor:pointer}
-.motion-toggle:hover{color:#fff;border-color:rgba(255,255,255,.5)}
+/* Sama pyöreä pysäytyspainike kuin seosales.fi:n etusivun videossa */
+.motion-toggle{position:absolute;right:16px;bottom:16px;z-index:3;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(20,20,26,.35);color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background .2s,border-color .2s,color .2s}
+.motion-toggle:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.75);color:#fff}
+.motion-toggle .mt-play,.motion-toggle.is-paused .mt-pause{display:none}
+.motion-toggle.is-paused .mt-play{display:block}
 .motion-toggle[hidden]{display:none}
 
 /* Responsive */
@@ -323,7 +329,7 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
   <div class="wrap">
     <div class="report-head" id="report-head">
       <canvas class="report-motion" id="report-motion" aria-hidden="true"></canvas>
-      <button type="button" class="motion-toggle" id="motion-toggle" hidden>Pysäytä animaatio</button>
+      <button type="button" class="motion-toggle" id="motion-toggle" aria-label="Pysäytä animaatio" hidden><svg class="mt-pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg><svg class="mt-play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></button>
       <div class="report-head-content">
     <p class="report-eyebrow">Näkyvyysanalyysi</p>
     <p class="checked-url" id="checked-url"></p>
@@ -351,7 +357,11 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
   <div class="gate-overlay">
     <div class="gate-card">
       <h2>Avaa <em>täysi raportti</em></h2>
-      <p class="gate-sub">Näette jokaisen tarkistuksen tuloksen, selityksen ja korjausohjeen. Lähetämme raportin myös sähköpostiin.</p>
+      <ul class="gate-list">
+        <li>Jokaisen tarkistuksen tulos ja korjausohje</li>
+        <li>Tärkeimmät kehityskohteet ensin</li>
+        <li>Raportti sähköpostiin talteen</li>
+      </ul>
       <form id="email-form">
         <label for="email-input" class="sr-only">Sähköpostiosoite</label>
         <input type="email" id="email-input" autocomplete="email" placeholder="sähköpostiosoite" required>
@@ -412,16 +422,16 @@ const CATS = {
     why: 'Selkeästi jäsennelty sisältö auttaa sekä kävijää että hakukonetta ymmärtämään nopeasti, mitä tarjoatte ja kenelle.'
   },
   social: {
-    label: 'Somenäkyvyys',
-    question: 'Miltä sivusto näyttää, kun joku jakaa sen LinkedInissä tai viestisovelluksessa?',
-    info: 'Tarkistamme Open Graph- ja X-kortit sekä sivuston kuvakkeen.',
-    why: 'Hyvin määritelty linkki näkyy jaettaessa kuvana ja otsikkona, ei pelkkänä osoitteena.'
+    label: 'Somejaot',
+    question: 'Miltä linkki näyttää, kun se jaetaan LinkedInissä, Facebookissa tai WhatsAppissa?',
+    info: 'Tarkistamme Open Graph -tiedot (jakokuva, otsikko ja kuvaus), X-jakokortin ja sivuston kuvakkeen. Osa-alue ei mittaa somekanavien seuraajia, julkaisuja tai tavoittavuutta.',
+    why: 'Kun tiedot ovat kunnossa, jaettu linkki näkyy kuvana, otsikkona ja kuvauksena eikä pelkkänä osoitteena. Se herättää luottamusta ja houkuttelee klikkaamaan.'
   },
   ai: {
     label: 'Tekoälyhaut',
-    question: 'Voivatko ChatGPT ja muut tekoälyhaut suositella teitä?',
+    question: 'Voivatko tekoälyhaut, kuten ChatGPT, Claude ja Gemini, suositella teitä?',
     info: 'Tarkistamme rakenteellisen datan, kysymysmuotoiset otsikot, UKK-merkinnät, tekoälybottien pääsyn, llms.txt-tiedoston, yritystiedot ja sen, näkyykö sisältö ilman JavaScriptiä.',
-    why: 'Yhä useampi hakee tietoa ChatGPT:n, Geminin ja Perplexityn kautta. Tekoälyhakuihin optimointia kutsutaan myös nimellä GEO (Generative Engine Optimization).'
+    why: 'Yhä useampi hakee tietoa tekoälyhauista, kuten ChatGPT:stä, Claudesta, Geministä, Perplexitystä ja Copilotista. Tekoälyhakuihin optimointia kutsutaan myös nimellä GEO (Generative Engine Optimization).'
   },
   keywords: {
     label: 'Avainsanat',
@@ -624,7 +634,9 @@ function renderPreview(data) {
 // josta jatkuu yksi kasvun rata. Siirrettävissä työkaluun: createReportMotion(panel, canvas, ring, data).
 function createReportMotion(panel, canvas, ring, data) {
   const ctx = canvas.getContext('2d');
-  const TURQ = [37, 217, 198], VIOLET = [160, 140, 255], WHITE = [241, 238, 255];
+  const VIOLET = [160, 140, 255], WHITE = [241, 238, 255];
+  // Radan väri osa-alueen pisteistä: vihreä 80–100, oranssi 50–79, punainen alle 50 (kuten pisterengas).
+  const statusRgb = score => score >= 80 ? [61, 214, 140] : score >= 50 ? [242, 153, 74] : [255, 138, 122];
   const rgba = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
@@ -697,7 +709,7 @@ function createReportMotion(panel, canvas, ring, data) {
       const xt = Math.round(startX + (endX - startX) * (0.42 + 0.14 * d)) + 0.5;
       const tr = trace([{ x: startX, y: y0 }, { x: xt, y: y0 }, { x: xt, y: yEnd }, { x: endX, y: yEnd }], 9);
       const s = c.score / 100;
-      return { s, tr, label: (c.label || '').toUpperCase(), score: c.score, phase: hash(i + 7), cut: s < 0.7 ? 0.4 + 0.15 * hash(i + 3) : 2 };
+      return { s, tr, col: statusRgb(c.score), label: (c.label || '').toUpperCase(), score: c.score, phase: hash(i + 7), cut: s < 0.7 ? 0.4 + 0.15 * hash(i + 3) : 2 };
     });
     out = trace([{ x: M.x + R + 14, y: Math.round(M.y) + 0.5 }, { x: W + 8, y: Math.round(M.y) + 0.5 }], 0);
 
@@ -743,23 +755,23 @@ function createReportMotion(panel, canvas, ring, data) {
 
     // Radat ja liitinpisteet. Heikon osa-alueen rata katkeilee ennen renkaaseen saapumista.
     ctx.lineWidth = 1;
-    ctx.font = '500 9.5px "IBM Plex Mono", ui-monospace, monospace';
+    ctx.font = '500 11.5px "IBM Plex Mono", ui-monospace, monospace';
     lanes.forEach(ln => {
-      const base = 0.07 + 0.16 * ln.s;
-      ctx.strokeStyle = rgba(TURQ, base);
+      const base = 0.16 + 0.1 * ln.s;
+      ctx.strokeStyle = rgba(ln.col, base);
       strokeTrace(ln.tr, 0, Math.min(intro, ln.cut));
       if (intro > ln.cut) {
-        ctx.setLineDash([2, 5]); ctx.strokeStyle = rgba(TURQ, base * 0.7);
+        ctx.setLineDash([2, 5]); ctx.strokeStyle = rgba(ln.col, base * 0.8);
         strokeTrace(ln.tr, ln.cut, intro); ctx.setLineDash([]);
       }
       const p0 = ln.tr.pts[0];
-      ctx.fillStyle = rgba(TURQ, 0.25 + 0.4 * ln.s);
+      ctx.fillStyle = rgba(ln.col, 0.7);
       ctx.fillRect(p0.x - 2, p0.y - 2, 4, 4);
       if (labels && ln.label) {
         ctx.fillStyle = rgba(WHITE, 0.34 * intro);
-        ctx.fillText(ln.label, p0.x - 2, p0.y - 9);
-        ctx.fillStyle = rgba(TURQ, (0.35 + 0.4 * ln.s) * intro);
-        ctx.fillText(String(ln.score), p0.x + ctx.measureText(ln.label).width + 6, p0.y - 9);
+        ctx.fillText(ln.label, p0.x - 2, p0.y - 10);
+        ctx.fillStyle = rgba(ln.col, 0.9 * intro);
+        ctx.fillText(String(ln.score), p0.x + ctx.measureText(ln.label).width + 7, p0.y - 10);
       }
     });
     ctx.strokeStyle = rgba(VIOLET, 0.1 + 0.25 * g); ctx.lineWidth = 1;
@@ -781,9 +793,9 @@ function createReportMotion(panel, canvas, ring, data) {
       for (let i = 0; i < n; i++) {
         const u = (time * SPEED * (360 / Math.max(ln.tr.L, 200)) + i / n + ln.phase) % 1;
         if (u > intro) continue;
-        let a = (0.45 + 0.5 * ln.s) * clamp(u / 0.05, 0, 1) * clamp((1 - u) / 0.04, 0, 1);
+        let a = (0.6 + 0.35 * ln.s) * clamp(u / 0.05, 0, 1) * clamp((1 - u) / 0.04, 0, 1);
         if (u > ln.cut && hash(li * 31 + i) < loss) a *= clamp(1 - (u - ln.cut) / 0.06, 0, 1);
-        packet(ln.tr, u, TURQ, a, 22 * sizeK);
+        packet(ln.tr, u, ln.col, a, 22 * sizeK);
       }
     });
 
@@ -832,8 +844,9 @@ function startReportMotion(data) {
 
 // Liikkuvan taustan voi pysäyttää (WCAG 2.2.2).
 $('motion-toggle').addEventListener('click', () => {
-  if (reportMotion.running) { reportMotion.pause(); $('motion-toggle').textContent = 'Toista animaatio'; }
-  else { reportMotion.play(); $('motion-toggle').textContent = 'Pysäytä animaatio'; }
+  if (reportMotion.running) reportMotion.pause(); else reportMotion.play();
+  $('motion-toggle').classList.toggle('is-paused', !reportMotion.running);
+  $('motion-toggle').setAttribute('aria-label', reportMotion.running ? 'Pysäytä animaatio' : 'Toista animaatio');
 });
 
 function renderIntro() {

@@ -168,7 +168,7 @@ const IMPACT_ORDER = [
   'Vasteaika', 'Sisällön määrä', 'Sisällön selkeys', 'Väärät kävijät', 'Yritystiedot', 'Rakenteellinen data',
   'Open Graph', 'Kysymysmuotoiset otsikot', 'Otsikkorakenne', 'Sivukartta', 'Sisäiset linkit',
   'Ensisijainen osoite (canonical)', 'Kuvien alt-tekstit', 'Robots.txt', 'UKK-merkinnät (FAQ-schema)',
-  'llms.txt', 'Twitter/X-kortit', 'Favicon', 'Kieliasetus', 'Merkistökoodaus',
+  'llms.txt', 'X-jakokortti (Twitter Card)', 'Favicon', 'Kieliasetus', 'Merkistökoodaus',
 ];
 function byImpact(checks) {
   const rank = l => { const i = IMPACT_ORDER.indexOf(l); return i === -1 ? IMPACT_ORDER.length : i; };
@@ -874,7 +874,7 @@ function analyzeSocial($) {
   max += 30;
   const ogCount = [ogTitle, ogDesc, ogImage].filter(Boolean).length;
   if (ogCount === 0) {
-    checks.push(ck('Open Graph', 'fail', 'Open Graph -tagit puuttuvat.', 'Lisää sivulle Open Graph -tagit og:title, og:description ja og:image. Niiden avulla jaettu linkki näkyy LinkedInissä ja viestisovelluksissa kuvana ja otsikkona. WordPressissä ne hoituvat esimerkiksi Yoast-lisäosalla.'));
+    checks.push(ck('Open Graph', 'fail', 'Open Graph -tagit puuttuvat.', 'Lisää sivulle Open Graph -tagit og:title, og:description ja og:image. Niiden avulla jaettu linkki näkyy LinkedInissä, Facebookissa ja WhatsAppissa kuvana ja otsikkona. WordPressissä ne hoituvat esimerkiksi Yoast-lisäosalla.'));
   } else if (ogCount < 3) {
     const missing = [];
     if (!ogTitle) missing.push('og:title');
@@ -891,9 +891,9 @@ function analyzeSocial($) {
   const twTitle = $('meta[name="twitter:title"]').attr('content') || '';
   max += 20;
   if (!twCard && !twTitle) {
-    checks.push(ck('Twitter/X-kortit', 'warn', 'Twitter Card -tagit puuttuvat.', 'Lisää tagit twitter:card (arvo "summary_large_image") ja twitter:title, jotta linkki näkyy X:ssä isona kuvakorttina.'));
+    checks.push(ck('X-jakokortti (Twitter Card)', 'warn', 'X-jakokortin tagit (twitter:card) puuttuvat.', 'Lisää tagit twitter:card (arvo "summary_large_image") ja twitter:title, jotta linkki näkyy X:ssä isona kuvakorttina.'));
   } else {
-    checks.push(ck('Twitter/X-kortit', 'pass', 'Twitter Card -tagit löytyvät.'));
+    checks.push(ck('X-jakokortti (Twitter Card)', 'pass', 'X-jakokortin tagit (twitter:card) löytyvät.'));
     score += 20;
   }
 
@@ -906,7 +906,7 @@ function analyzeSocial($) {
     score += 10;
   }
 
-  return cat('social', 'Somenäkyvyys', 'Miltä sivusto näyttää, kun joku jakaa sen LinkedInissä tai viestisovelluksessa?', score, max, checks, 1);
+  return cat('social', 'Somejaot', 'Miltä linkki näyttää, kun se jaetaan LinkedInissä, Facebookissa tai WhatsAppissa?', score, max, checks, 1);
 }
 
 function analyzeAI($, text, extra = {}) {
@@ -1017,7 +1017,7 @@ function analyzeAI($, text, extra = {}) {
     checks.push(ck('Yritystiedot', 'warn', `${foundInfo.length ? `Sivulta löytyy ${listFi(foundInfo)}. ` : ''}Puuttuu: ${listFi(missingParts)}.`, infoTip));
   }
 
-  return cat('ai', 'Tekoälyhaut', 'Voivatko ChatGPT ja muut tekoälyhaut suositella teitä?', score, max, checks, 2);
+  return cat('ai', 'Tekoälyhaut', 'Voivatko tekoälyhaut, kuten ChatGPT, Claude ja Gemini, suositella teitä?', score, max, checks, 2);
 }
 
 function analyzeKeywords($, pageLang, text, siteHost = '') {
