@@ -88,8 +88,12 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .spinner{width:36px;height:36px;border:3px solid var(--line);border-top-color:var(--violet);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading p{color:var(--muted);font-size:15px}
-.error-msg{text-align:center;padding:24px;color:var(--fail);font-size:15px;display:none;max-width:620px;margin:0 auto;line-height:1.6}
+.error-msg{display:none;max-width:620px;margin:8px auto 48px;padding:26px 30px;background:var(--paper);border-radius:var(--r-md);border-left:3px solid var(--fail)}
 .error-msg.active{display:block}
+.error-title{font-family:var(--display);font-size:19px;font-weight:600;color:var(--navy);letter-spacing:-.01em;margin-bottom:6px}
+.error-text{font-size:15.5px;color:var(--text);line-height:1.65}
+.error-cta{display:inline-block;margin-top:18px;font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;color:#fff;background:var(--navy);border-radius:var(--r-sm);padding:14px 26px;text-decoration:none;transition:background .2s}
+.error-cta:hover{background:var(--violet-dark)}
 
 /* Results preview */
 .results-preview{display:none;padding:0 0 8px}
@@ -304,6 +308,9 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
   </div>
 </section>
 
+<div class="loading" id="loading" role="status" aria-live="polite"><div class="spinner"></div><p>Analysoidaan sivustoa – tämä vie yleensä muutaman sekunnin.</p></div>
+<div class="error-msg" id="error" role="alert"></div>
+
 <section class="intro" id="intro">
   <div class="wrap">
     <h2 class="intro-title">Mitä analyysi kertoo</h2>
@@ -311,8 +318,6 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
   </div>
 </section>
 
-<div class="loading" id="loading" role="status" aria-live="polite"><div class="spinner"></div><p>Analysoidaan sivustoa – tämä vie yleensä muutaman sekunnin.</p></div>
-<div class="error-msg" id="error" role="alert"></div>
 
 <section class="results-preview" id="results-preview">
   <div class="wrap">
@@ -482,16 +487,30 @@ $('check-form').addEventListener('submit', async (e) => {
     currentData = data;
     renderPreview(data);
   } catch (err) {
-    $('error').textContent = err.code ? err.message : (err.message.includes('fetch') ? 'Yhteys analyysipalveluun katkesi. Voitte kokeilla uudelleen.' : err.message);
-    if (err.code === 'bot_protection') {
-      $('error').insertAdjacentHTML('beforeend', ' <a href="https://seosales.fi/yhteys.html" target="_blank" rel="noopener" style="color:var(--violet);font-weight:600">Varaa maksuton keskustelu &rarr;</a>');
-    }
-    show('error');
+    showError(err.code, err.code ? err.message : (err.message.includes('fetch') ? 'Yhteys analyysipalveluun katkesi. Voitte kokeilla uudelleen.' : err.message));
   } finally {
     hide('loading');
     $('check-btn').disabled = false;
   }
 });
+
+// Virhe näytetään laatikkona. Kun vika ei ole kirjoitetussa osoitteessa (esim. bottisuojaus),
+// tarjotaan keskustelua, jossa sivusto voidaan käydä läpi yhdessä.
+const ERROR_TITLES = {
+  bot_protection: 'Sivusto estää automaattiset tarkistukset',
+  dns: 'Osoitetta ei löytynyt',
+  invalid_url: 'Osoite ei kelpaa',
+  not_found: 'Sivua ei löytynyt',
+  not_html: 'Osoite ei johda verkkosivulle',
+  rate_limited: 'Hetki aikaa',
+};
+const ERROR_CTA = ['bot_protection', 'fetch_failed', 'timeout', 'tls', 'server_error', 'http_error'];
+function showError(code, message) {
+  $('error').innerHTML = '<p class="error-title">' + esc(ERROR_TITLES[code] || 'Analyysi ei onnistunut') + '</p>' +
+    '<p class="error-text">' + esc(message) + '</p>' +
+    (ERROR_CTA.includes(code) ? '<a href="https://seosales.fi/yhteys.html" class="error-cta" target="_blank" rel="noopener">Varaa maksuton keskustelu</a>' : '');
+  show('error');
+}
 
 $('email-form').addEventListener('submit', async (e) => {
   e.preventDefault();

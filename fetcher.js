@@ -199,7 +199,7 @@ function networkError(err, host) {
 async function fetchPage(input) {
   const { url, hadProtocol } = normalizeUrl(input);
   const signal = AbortSignal.timeout(TOTAL_TIMEOUT_MS);
-  const host = url.hostname;
+  let host = url.hostname;
   const t0 = Date.now();
 
   let attempt;
@@ -207,8 +207,15 @@ async function fetchPage(input) {
     attempt = await fetchFollow(url.href, UA_TOOL, signal);
   } catch (err) {
     const e = networkError(err, host);
+    // Osoitetta ei löytynyt: kokeillaan samaa ilman www:tä tai sen kanssa (esim. www.dashboa.com → dashboa.com),
+    // jottei käyttäjän tarvitse arvata oikeaa muotoa.
+    if (e.code === 'dns' && !net.isIP(host)) {
+      const alt = new URL(url.href);
+      alt.hostname = host.startsWith('www.') ? host.slice(4) : 'www.' + host;
+      try { attempt = await fetchFollow(alt.href, UA_TOOL, signal); host = alt.hostname; }
+      catch { throw e; }
     // Ilman protokollaa syötetty osoite: jos https ei toimi lainkaan, kokeillaan http.
-    if (!hadProtocol && ['fetch_failed', 'tls'].includes(e.code)) {
+    } else if (!hadProtocol && ['fetch_failed', 'tls'].includes(e.code)) {
       try { attempt = await fetchFollow('http://' + url.host + url.pathname + url.search, UA_TOOL, signal); }
       catch { throw e; }
     } else throw e;
