@@ -435,7 +435,7 @@ app.post('/api/lead', async (req, res) => {
 
   // Lähetetään ennen vastausta: Cloud Run hidastaa prosessia vastauksen jälkeen, jolloin taustalähetys voisi jäädä kesken.
   const host = hostOf(results.url);
-  const followupAt = new Date(Date.now() + CONFIG.followupDays * 24 * 60 * 60 * 1000).toISOString();
+  const followupAt = followupTime(new Date(), CONFIG.followupDays).toISOString();
   const jobs = [
     sendEmail({
       to: lead.email,
@@ -480,16 +480,36 @@ app.post('/api/lead', async (req, res) => {
 });
 
 
-// Muistutusviesti noin kolme päivää analyysin jälkeen: kolme tärkeintä kohdetta, lyhyet vastaukset
+// Muistutus lähtee arkipäivänä klo 9 Suomen aikaa: followupDays arkipäivää analyysin jälkeen, viikonloput ohitetaan.
+function helsinkiOffsetMinutes(date) {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Helsinki', timeZoneName: 'shortOffset' })
+    .formatToParts(date).find(p => p.type === 'timeZoneName').value; // esim. "GMT+3"
+  const m = name.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+  return m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] || 0)) : 0;
+}
+function followupTime(now, businessDays) {
+  const local = new Date(now.getTime() + helsinkiOffsetMinutes(now) * 60000);
+  let day = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate());
+  for (let left = businessDays; left > 0;) {
+    day += 86400000;
+    const wd = new Date(day).getUTCDay();
+    if (wd !== 0 && wd !== 6) left--;
+  }
+  const nine = day + 9 * 3600000;
+  return new Date(nine - helsinkiOffsetMinutes(new Date(nine)) * 60000);
+}
+
+// Muistutusviesti kolmantena arkipäivänä analyysin jälkeen: kolme tärkeintä kohdetta, lyhyet vastaukset
 // tavallisimpiin kysymyksiin ja kutsu keskusteluun.
 // LUONNOS: Hyvä tietää -vastaukset odottavat Janin tarkistusta.
 const FOLLOWUP_FAQ = [
   ['Kuinka nopeasti korjaukset näkyvät Googlessa?',
    'Hakutuloksen otsikkoon ja kuvaukseen tehdyt muutokset päivittyvät yleensä muutamassa päivässä tai viikossa, kun Google lukee sivun uudelleen. Sisältöön ja rakenteeseen tehtyjen muutosten vaikutus näkyy tavallisesti muutaman viikon tai kuukauden kuluessa. Google Search Consolessa voit pyytää sivun uudelleenlukemista heti korjauksen jälkeen.'],
   ['Auttavatko samat korjaukset tekoälyhauissa?',
-   'Suurelta osin kyllä. ChatGPT, Gemini ja muut tekoälyhaut hyödyntävät samoja asioita kuin Google: selkeää sisältöä, rakenteellista dataa ja ajantasaisia yritystietoja. Kun sivu vastaa suoraan asiakkaiden kysymyksiin, se on hyvä lähde sekä hakukoneille että tekoälylle.'],
-  ['Voiko korjaukset tehdä itse?',
-   'Monet niistä voi. Otsikot, kuvaukset ja tekstit onnistuvat useimmissa julkaisujärjestelmissä, kuten WordPressissä, ilman koodausta. Tekniset muutokset, kuten palvelimen nopeus tai rakenteellinen data, kannattaa usein antaa sivuston kehittäjälle. Tärkeintä on tehdä korjaukset oikeassa järjestyksessä: ensin ne, jotka vaikuttavat eniten siihen, löytävätkö oikeat asiakkaat yrityksesi.'],
+   'Suurelta osin kyllä. ChatGPT, Claude, Gemini, Perplexity ja muut tekoälyhaut hyödyntävät samoja asioita kuin Google: selkeää sisältöä, rakenteellista dataa ja ajantasaisia yritystietoja. Kun sivu vastaa suoraan asiakkaiden kysymyksiin, se on hyvä lähde sekä hakukoneille että tekoälylle.'],
+  ['Saako korjauksiin apua?',
+   'Saa. Käymme tulokset kanssasi läpi maksuttomassa keskustelussa ja kerromme, mitkä korjaukset kannattaa tehdä ensin ja mitkä onnistuvat omin voimin. Voimme myös toteuttaa korjaukset tai tehdä ne yhdessä sivuston kehittäjän kanssa.',
+   true],
 ];
 
 function buildFollowupHTML({ url, score, categories }) {
@@ -506,9 +526,10 @@ function buildFollowupHTML({ url, score, categories }) {
   <tr><td style="padding:24px 40px 0">
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F7;border-radius:10px"><tr><td style="padding:24px 24px 6px">
       ${eyebrow('Hyvä tietää')}
-      ${FOLLOWUP_FAQ.map(([q, a]) => `
+      ${FOLLOWUP_FAQ.map(([q, a, cta]) => `
       <div style="font-family:${FONT_HEAD};font-size:16px;font-weight:600;color:#17161C;margin:16px 0 4px">${esc(q)}</div>
-      <div style="font-size:15px;color:#34333C;line-height:1.6;margin-bottom:12px">${esc(a)}</div>`).join('')}
+      <div style="font-size:15px;color:#34333C;line-height:1.6;margin-bottom:12px">${esc(a)}</div>
+      ${cta ? `<div style="margin-bottom:14px"><a href="${EMAIL.ctaUrl}" style="font-size:14px;color:#6D4AFF;text-decoration:none;font-weight:600">Varaa maksuton keskustelu &rarr;</a></div>` : ''}`).join('')}
     </td></tr></table>
   </td></tr>`;
 

@@ -19,7 +19,7 @@ Näkyvyysanalyysi on maksuton työkalu, jolla kuka tahansa voi tarkistaa oman ve
 3. **Täydet tulokset on lukittu.** Ne näkyvät sumennettuina, ja niiden päällä on sähköpostikenttä. Puhelinnumero ja uutiskirjeen tilaus ovat vapaaehtoisia.
 4. **Sähköpostin antamisen jälkeen** kaikki 31 tarkistusta korjausohjeineen avautuvat.
 5. **Raportti lähtee heti käyttäjän sähköpostiin.**
-6. **Noin kolmen päivän päästä lähtee yksi muistutusviesti.** Siinä on kolme tärkeintä kehityskohdetta ja ehdotus maksuttomasta keskustelusta.
+6. **Kolmantena arkipäivänä klo 9 lähtee yksi muistutusviesti.** Siinä on kolme tärkeintä kehityskohdetta ja ehdotus maksuttomasta keskustelusta.
 7. **Jani saa jokaisesta liidistä ilmoituksen sähköpostiin** (Formspree). Käyttäjän vastaukset raporttiin ja muistutukseen tulevat Janille.
 
 ### Mitä analyysi tarkistaa
@@ -201,9 +201,9 @@ Jatkossa jokainen `git push` julkaisee uuden version automaattisesti.
   - korjattavat ja huomioitavat kohdat ohjeineen, tärkeimmät ensin
   - yhteenveto kunnossa olevista
   - allekirjoitus "Jani, SEO Sales" ja painike "Varaa maksuton keskustelu"
-- **Muistutus** lähtee kerran, 3 päivän päästä. Aihe: "Mitä yritys.fi-analyysin tuloksista kannattaa tehdä ensin?". Sisältö: kolme tärkeintä kehityskohdetta ja ehdotus keskustelusta.
+- **Muistutus** lähtee kerran, kolmantena arkipäivänä klo 9 Suomen aikaa (viikonloput ohitetaan). Aihe: "Mitä yritys.fi-analyysin tuloksista kannattaa tehdä ensin?". Sisältö: kolme tärkeintä kehityskohdetta ja ehdotus keskustelusta.
 - **Muistutuksen peruminen:** jos asiakas varaa keskustelun ennen muistutusta, peru viesti Resendissä: Emails → viesti → Cancel.
-- **Viive:** muutetaan ympäristömuuttujalla `FOLLOWUP_DAYS` (enintään 30 päivää, Resendin raja).
+- **Viive:** muutetaan ympäristömuuttujalla `FOLLOWUP_DAYS` arkipäivinä (enintään noin 20, koska Resend ajastaa enintään 30 päivän päähän).
 - **Tekstien muokkaus:** tekstit ovat tiedostossa `server.js` (funktiot `buildReportHTML` ja `buildFollowupHTML`). Esikatselu paikallisesti:
   - `/api/report-preview?url=yritys.fi`
   - `/api/followup-preview?url=yritys.fi`

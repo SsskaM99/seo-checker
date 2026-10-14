@@ -8,7 +8,7 @@ Päivitetty 7.10.2026.
 - [x] Selkeät suomenkieliset virheilmoitukset, bottisuojatuille sivustoille keskustelulinkki
 - [x] Tietoturva: sisäverkon osoitteiden esto, käyttörajoitukset (analyysi 20 / 10 min, liidi 5 / 10 min per IP), sähköpostit rakennetaan palvelimen omista tuloksista
 - [x] Copy, raportin ilme (animaatiopaneeli), korjausohjeet, saavutettavuus (axe: 0 rikkomusta)
-- [x] Raporttisähköposti (heti) ja muistutus (ajastettu 3 päivän päähän Resendissä)
+- [x] Raporttisähköposti (heti) ja muistutus (ajastettu kolmanteen arkipäivään klo 9 Resendissä)
 - [x] Sähköpostipolun testi: `npm test` (21 tarkistusta, ei lähetä oikeita viestejä)
 - [x] Tietosuojaseloste-linkki sähköpostiportissa, uutiskirjesuostumus ei oletuksena valittuna
 
@@ -69,7 +69,7 @@ Päivitetty 7.10.2026.
 | `FORMSPREE_KEY` | kyllä | Formspree-lomakkeen tunnus liidi-ilmoituksille |
 | `NODE_ENV` | kyllä | `production` sulkee esikatselut |
 | `ALLOWED_ORIGINS` | – | Oletus `https://seosales.fi,https://www.seosales.fi` |
-| `FOLLOWUP_DAYS` | – | Muistutuksen viive, oletus 3 |
+| `FOLLOWUP_DAYS` | – | Muistutuksen viive arkipäivinä, oletus 3 |
 | `RATE_MAX` | – | Analyysejä per IP 10 minuutissa, oletus 20 |
 | `DATA_DIR` | – | Liidien ja lokien kansio, oletus sovelluksen kansio |
 | `PORT` | – | Hosting asettaa automaattisesti |

@@ -86,7 +86,10 @@ try {
   check('raportti ei sisällä selaimen syöttämää tekstiä', !report?.html.includes('HUIJAUS'));
   check('raportti käyttää palvelimen pisteitä', report?.html.includes(`>${check1.score}<`));
   const days = (new Date(followup?.scheduled_at) - now) / 86400000;
-  check('muistutus ajastettu noin 3 päivän päähän', days > 2.99 && days < 3.01, followup?.scheduled_at);
+  const hel = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Helsinki', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(new Date(followup?.scheduled_at)).map(p => [p.type, p.value]));
+  check('muistutus 3 arkipäivän päähän', days > 2.3 && days < 5.5, followup?.scheduled_at);
+  check('muistutus arkipäivänä klo 9 Suomen aikaa', !['Sat', 'Sun'].includes(hel.weekday) && hel.hour === '09' && hel.minute === '00', followup?.scheduled_at);
   check('muistutuksella sama vastausosoite', followup?.reply_to === 'jani@seosales.fi');
   check('muistutus ei sisällä selaimen syöttämää tekstiä', !followup?.html.includes('HUIJAUS'));
   check('idempotenssiavaimet asetettu', received.every(x => /^(report|followup)-/.test(x.headers['idempotency-key'] || '')));
