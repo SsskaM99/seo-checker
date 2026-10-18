@@ -185,8 +185,11 @@ const EMAIL = {
   ctaUrl: 'https://seosales.fi/yhteys.html',
   privacyUrl: 'https://seosales.fi/tietosuojaseloste.html',
   contact: { name: 'Jani Lammi', phone: '+358 45 131 4343', tel: '+358451314343', email: 'janio.lammi@gmail.com' },
-  // Arvostelulinkit viestien loppuun. Google-linkki lisätään, kun se on saatu (Google Business Profile → Pyydä arvosteluja).
-  reviews: { trustpilot: 'https://www.trustpilot.com/evaluate/seosales.fi', google: '' },
+  // Arvostelulinkit viestien loppuun. Google-linkki avaa yritysprofiilin arvosteluikkunan (lrd = profiilin tunniste, 3 = kirjoita arvio).
+  reviews: {
+    trustpilot: 'https://www.trustpilot.com/evaluate/seosales.fi',
+    google: 'https://www.google.com/search?q=SEO+Sales#lrd=0x6dcf92873c8f823:0xe3de010cc86d3a74,3,,,',
+  },
 };
 // Brändifontit näkyvät esimerkiksi Apple Mailissa; Gmail ja Outlook käyttävät varafontteja.
 const FONT_BODY = "Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
