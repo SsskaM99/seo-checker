@@ -212,7 +212,7 @@ const emailLogo = (align = 'center') =>
 
 // Yläotsake kuten sivuston osioissa: turkoosi viiva ja tunniste.
 const eyebrow = (text, color = '#0C847C') =>
-  `<div style="font-family:${FONT_MONO};font-size:11px;font-weight:500;color:${color};text-transform:uppercase;letter-spacing:0.12em"><span style="display:inline-block;width:22px;height:2px;background:#12B5AA;vertical-align:middle;margin:-2px 10px 0 0"></span>${text}</div>`;
+  `<div style="font-family:${FONT_MONO};font-size:11px;font-weight:500;color:${color};text-transform:uppercase;letter-spacing:0.12em"><span style="display:inline-block;width:22px;height:2px;background:#12B5AA;vertical-align:middle;margin-right:10px"></span>${text}</div>`;
 
 function contactBlock(intro) {
   const c = EMAIL.contact;
