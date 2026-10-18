@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Näkyvyysanalyysi — SEO Sales</title>
-<meta name="description" content="Miten teidän verkkosivusto näkyy hakukoneissa ja tekoälyhauissa? Maksuton analyysi antaa selkeän raportin ja konkreettiset kehitysehdotukset.">
+<meta name="description" content="Miten yrityksen verkkosivut näkyvät hakukoneissa ja tekoälyhauissa? Maksuton analyysi kertoo, mikä tuo jo asiakkaita ja mikä kannattaa korjata ensin.">
 <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -73,7 +73,7 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
 /* Intro before analysis */
-.input-meta{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:14px}
+.input-meta{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--turq-dark);margin-top:14px}
 .intro{padding:12px 0 56px}
 .intro-title{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--turq-dark);margin-bottom:18px}
 .intro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:960px;margin:0 auto}
@@ -175,6 +175,9 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .gate-card h2{font-size:22px;margin-bottom:6px}
 .gate-card h2 em{color:var(--turq-dark);font-style:normal}
 .gate-card .gate-sub{font-size:15px;color:var(--muted);margin-bottom:20px;line-height:1.55}
+.gate-free{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--turq-dark);margin:2px 0 0}
+.sent-note{max-width:960px;margin:8px auto 28px;padding:16px 20px;background:var(--paper);border-left:3px solid var(--turq);border-radius:var(--r-sm);font-size:15px;color:var(--text);line-height:1.6}
+.sent-note strong{color:var(--navy)}
 .gate-list{list-style:none;text-align:left;max-width:320px;margin:14px auto 22px;font-size:15px;color:var(--text);line-height:1.5}
 .gate-list li{position:relative;padding:5px 0 5px 28px}
 .gate-list li::before{content:"";position:absolute;left:4px;top:.68em;width:11px;height:6px;border-left:2px solid var(--turq);border-bottom:2px solid var(--turq);transform:rotate(-45deg)}
@@ -299,7 +302,7 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
 <section class="hero">
   <div class="wrap">
     <h1>Miten hyvin <em>oikeat asiakkaat</em> löytävät teidät?</h1>
-    <p>Analyysi käy verkkosivuston läpi hakukoneiden, tekoälyhakujen ja kävijän silmin. Saatte muutamassa sekunnissa selkeän kuvan siitä, mikä on kunnossa ja mikä kannattaa korjata ensin.</p>
+    <p>Analyysi käy sivuston läpi hakukoneiden, tekoälyhakujen ja kävijän silmin. Saatte muutamassa sekunnissa selkeän kuvan siitä, mikä tuo jo asiakkaita ja mikä kannattaa korjata ensin.</p>
   </div>
 </section>
 
@@ -356,11 +359,12 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
   <div class="blurred-preview" id="blurred-preview" aria-hidden="true" inert></div>
   <div class="gate-overlay">
     <div class="gate-card">
-      <h2>Avaa <em>täysi raportti</em></h2>
+      <h2>Täysi raportti <em>sähköpostiin</em></h2>
+      <p class="gate-free">Maksuton · Ei sitoumuksia</p>
       <ul class="gate-list">
         <li>Jokaisen tarkistuksen tulos ja korjausohje</li>
         <li>Tärkeimmät kehityskohteet ensin</li>
-        <li>Raportti sähköpostiin talteen</li>
+        <li>Tulokset aukeavat myös tälle sivulle</li>
       </ul>
       <form id="email-form">
         <label for="email-input" class="sr-only">Sähköpostiosoite</label>
@@ -369,12 +373,12 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
         <input type="tel" id="phone-input" autocomplete="tel" placeholder="puhelinnumero (vapaaehtoinen)">
         <div class="checkbox-row">
           <input type="checkbox" id="newsletter-check">
-          <label for="newsletter-check">Haluan myös SEO Salesin uutiskirjeen: ajankohtaisia näkemyksiä näkyvyydestä, myynnistä ja kasvusta.</label>
+          <label for="newsletter-check">Suostun vastaanottamaan SEO Salesin uutiskirjeen: ajankohtaisia näkemyksiä näkyvyydestä, myynnistä ja kasvusta. Suostumuksen voi perua milloin tahansa.</label>
         </div>
         <p class="gate-error" id="gate-error" role="alert"></p>
-        <button type="submit" class="btn-gate" id="unlock-btn">Avaa raportti</button>
+        <button type="submit" class="btn-gate" id="unlock-btn">Lähetä raportti sähköpostiin</button>
       </form>
-      <p class="gate-note">Käytämme osoitetta vain raportin ja siihen liittyvien viestien lähettämiseen. <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p>
+      <p class="gate-note">Käytämme sähköpostiosoitetta raportin ja yhden muistutusviestin lähettämiseen. Uutiskirjettä lähetämme vain, jos annatte siihen suostumuksen. <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p>
     </div>
   </div>
 </div>
@@ -424,7 +428,7 @@ const CATS = {
   social: {
     label: 'Somejaot',
     question: 'Miltä linkki näyttää, kun se jaetaan LinkedInissä, Facebookissa tai WhatsAppissa?',
-    info: 'Tarkistamme Open Graph -tiedot (jakokuva, otsikko ja kuvaus), X-jakokortin ja sivuston kuvakkeen. Osa-alue ei mittaa somekanavien seuraajia, julkaisuja tai tavoittavuutta.',
+    info: 'Tarkistamme jakotiedot eli niin sanotut Open Graph -tiedot: kuvan, otsikon ja kuvauksen, jotka näkyvät, kun linkki jaetaan. Lisäksi tarkistamme X-jakokortin ja sivuston kuvakkeen. Osa-alue ei mittaa somekanavien seuraajia, julkaisuja tai tavoittavuutta.',
     why: 'Kun tiedot ovat kunnossa, jaettu linkki näkyy kuvana, otsikkona ja kuvauksena eikä pelkkänä osoitteena. Se herättää luottamusta ja houkuttelee klikkaamaan.'
   },
   ai: {
@@ -529,6 +533,7 @@ $('email-form').addEventListener('submit', async (e) => {
   const newsletter = $('newsletter-check').checked;
   if (!email) return;
   $('unlock-btn').disabled = true;
+  let emailSent = false;
 
   try {
     const res = await fetch(API_BASE + '/api/lead', {
@@ -546,10 +551,11 @@ $('email-form').addEventListener('submit', async (e) => {
         return;
       }
     }
+    emailSent = res.ok && (await res.json().catch(() => ({}))).emailSent === true;
   } catch { /* lead-tallennus epäonnistui — ei estä raportin näyttämistä */ }
 
   $('gate-wrapper').style.display = 'none';
-  renderFullResults(currentData);
+  renderFullResults(currentData, emailSent ? email : null);
   $('unlock-btn').disabled = false;
 });
 
@@ -879,9 +885,12 @@ function buildBlurredPreview(data) {
   wrap.innerHTML = html;
 }
 
-function renderFullResults(data) {
+function renderFullResults(data, sentTo) {
   const wrap = $('full-results-content');
-  let html = '<div class="results-title"><p>Täysi raportti</p><h2>Tulokset osa-alueittain</h2></div>';
+  let html = (sentTo
+    ? '<p class="sent-note"><strong>Raportti on matkalla osoitteeseen ' + esc(sentTo) + '.</strong> Täydet tulokset näette myös alla.</p>'
+    : '<p class="sent-note">Raportin lähetys sähköpostiin ei onnistunut juuri nyt. Täydet tulokset näette alla.</p>') +
+    '<div class="results-title"><p>Täysi raportti</p><h2>Tulokset osa-alueittain</h2></div>';
 
   data.categories.forEach((c, i) => {
     const col = scoreColor(c.score);

@@ -166,7 +166,7 @@ const IMPACT_ORDER = [
   'Indeksointi', 'HTTPS', 'Mobiilioptimointi', 'Sisältö ilman JavaScriptiä', 'Tekoälypääsy',
   'Myyntivalmius', 'Hakutuloksen kuvaus', 'Sivun otsikko (title)', 'Hakutuloksen otsikko', 'Pääotsikko (H1)',
   'Vasteaika', 'Sisällön määrä', 'Sisällön selkeys', 'Väärät kävijät', 'Yritystiedot', 'Rakenteellinen data',
-  'Open Graph', 'Kysymysmuotoiset otsikot', 'Otsikkorakenne', 'Sivukartta', 'Sisäiset linkit',
+  'Jakotiedot (Open Graph)', 'Kysymysmuotoiset otsikot', 'Otsikkorakenne', 'Sivukartta', 'Sisäiset linkit',
   'Ensisijainen osoite (canonical)', 'Kuvien alt-tekstit', 'Robots.txt', 'UKK-merkinnät (FAQ-schema)',
   'llms.txt', 'X-jakokortti (Twitter Card)', 'Favicon', 'Kieliasetus', 'Merkistökoodaus',
 ];
@@ -185,6 +185,8 @@ const EMAIL = {
   ctaUrl: 'https://seosales.fi/yhteys.html',
   privacyUrl: 'https://seosales.fi/tietosuojaseloste.html',
   contact: { name: 'Jani Lammi', phone: '+358 45 131 4343', tel: '+358451314343', email: 'janio.lammi@gmail.com' },
+  // Arvostelulinkit viestien loppuun. Google-linkki lisätään, kun se on saatu (Google Business Profile → Pyydä arvosteluja).
+  reviews: { trustpilot: 'https://www.trustpilot.com/evaluate/seosales.fi', google: '' },
 };
 // Brändifontit näkyvät esimerkiksi Apple Mailissa; Gmail ja Outlook käyttävät varafontteja.
 const FONT_BODY = "Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -228,6 +230,19 @@ function contactBlock(intro) {
         <div style="font-size:14px;margin-top:6px"><a href="tel:${c.tel}" style="color:#17161C;text-decoration:none">${c.phone}</a><br><a href="mailto:${c.email}" style="color:#0C847C;text-decoration:underline">${c.email}</a></div>
       </td>
     </tr></table>
+  </td></tr>`;
+}
+
+function reviewBlock() {
+  const r = EMAIL.reviews;
+  const links = [r.trustpilot && ['Trustpilotissa', r.trustpilot], r.google && ['Googlessa', r.google]].filter(Boolean);
+  if (!links.length) return '';
+  const linkHtml = links.map(([name, url]) => `<a href="${url}" style="display:inline-block;margin:6px 6px 0;padding:10px 18px;border:1px solid #D8D8DE;border-radius:999px;color:#17161C;font-size:13px;font-weight:600;text-decoration:none">Arvioi ${name} &rarr;</a>`).join('');
+  return `
+  <tr><td style="padding:28px 40px;text-align:center;background:#F5F5F7">
+    <div style="font-family:${FONT_HEAD};font-size:17px;font-weight:600;color:#17161C;margin-bottom:6px">Oliko analyysist&auml; hy&ouml;ty&auml;?</div>
+    <div style="font-size:14px;color:#34333C;line-height:1.6;margin:0 auto 6px;max-width:420px">Lyhyt arvio auttaa muita yrityksi&auml; l&ouml;yt&auml;m&auml;&auml;n meid&auml;t. Kiitos, jos ehdit!</div>
+    ${linkHtml}
   </td></tr>`;
 }
 
@@ -361,12 +376,14 @@ function buildReportHTML({ url, score, summary, categories, platform }) {
 
   <!-- CTA -->
   <tr><td style="padding:36px 40px;text-align:center;background:#17161C">
-    <div style="font-family:${FONT_HEAD};font-size:22px;font-weight:700;color:#FFFFFF;margin-bottom:8px">Tehd&auml;&auml;n n&auml;kyvyydest&auml; <span style="color:#25D9C6">myynti&auml;</span></div>
+    <div style="font-family:${FONT_HEAD};font-size:22px;font-weight:700;color:#FFFFFF;margin-bottom:8px">Tarvitsetko <span style="color:#25D9C6">apua</span> n&auml;iden kanssa?</div>
     <div style="font-size:15px;color:#C6C2D1;line-height:1.6;margin:0 auto 22px;max-width:440px">
-      Analyysi n&auml;ytt&auml;&auml; l&auml;ht&ouml;tilanteen. Keskustelussa katsomme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;.
+      K&auml;ymme tulokset l&auml;pi maksuttomassa keskustelussa ja kerromme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;.
     </div>
     <a href="${EMAIL.ctaUrl}" style="display:inline-block;background:#FFFFFF;color:#17161C;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 32px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
   </td></tr>
+
+  ${reviewBlock()}
 
   ${emailFooter('Sait t&auml;m&auml;n raportin, koska pyysit sit&auml; n&auml;kyvyysanalyysiss&auml; sivulla seosales.fi.')}`);
 }
@@ -551,13 +568,16 @@ function buildFollowupHTML({ url, score, categories }) {
   ${faqBlock}
 
   <tr><td style="padding:28px 40px 4px;font-size:16px;color:#34333C;line-height:1.65">
-    <p style="margin:0 0 16px">Raportti n&auml;ytt&auml;&auml; l&auml;ht&ouml;tilanteen. Keskustelussa katsomme yhdess&auml;, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;. Keskustelu on maksuton eik&auml; sido mihink&auml;&auml;n.</p>
+    <p style="margin:0 0 8px;font-family:${FONT_HEAD};font-size:19px;font-weight:600;color:#17161C">Tarvitsetko apua n&auml;iden kanssa?</p>
+    <p style="margin:0 0 16px">K&auml;ymme tulokset l&auml;pi maksuttomassa keskustelussa ja kerromme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;. Keskustelu ei sido mihink&auml;&auml;n.</p>
   </td></tr>
   <tr><td style="padding:12px 40px 0">
     <a href="${EMAIL.ctaUrl}" style="display:inline-block;background:#17161C;color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
   </td></tr>
 
   ${contactBlock('Voit my&ouml;s vastata suoraan t&auml;h&auml;n viestiin tai soittaa minulle.')}
+
+  ${reviewBlock()}
 
   ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivulla seosales.fi. T&auml;m&auml; on ainoa muistutus, eik&auml; muita viestej&auml; l&auml;hetet&auml; ilman lupaasi.')}`);
 }
@@ -895,16 +915,16 @@ function analyzeSocial($) {
   max += 30;
   const ogCount = [ogTitle, ogDesc, ogImage].filter(Boolean).length;
   if (ogCount === 0) {
-    checks.push(ck('Open Graph', 'fail', 'Open Graph -tagit puuttuvat.', 'Lisää sivulle Open Graph -tagit og:title, og:description ja og:image. Niiden avulla jaettu linkki näkyy LinkedInissä, Facebookissa ja WhatsAppissa kuvana ja otsikkona. WordPressissä ne hoituvat esimerkiksi Yoast-lisäosalla.'));
+    checks.push(ck('Jakotiedot (Open Graph)', 'fail', 'Jakotiedot puuttuvat: jaettu linkki näkyy pelkkänä osoitteena ilman kuvaa ja kuvausta.', 'Lisää sivulle Open Graph -tagit og:title, og:description ja og:image. Niiden avulla jaettu linkki näkyy LinkedInissä, Facebookissa ja WhatsAppissa kuvana ja otsikkona. WordPressissä ne hoituvat esimerkiksi Yoast-lisäosalla.'));
   } else if (ogCount < 3) {
     const missing = [];
     if (!ogTitle) missing.push('og:title');
     if (!ogDesc) missing.push('og:description');
     if (!ogImage) missing.push('og:image');
-    checks.push(ck('Open Graph', 'warn', `Osittain kunnossa. Puuttuu: ${missing.join(', ')}.`, `Lisää puuttuvat tagit: ${missing.join(', ')}.${missing.includes('og:image') ? ' Jakokuvaksi sopii 1200 × 630 pikselin kuva.' : ''}`));
+    checks.push(ck('Jakotiedot (Open Graph)', 'warn', `Jakotiedot ovat osittain kunnossa. Puuttuu: ${missing.join(', ')}.`, `Lisää puuttuvat tagit: ${missing.join(', ')}.${missing.includes('og:image') ? ' Jakokuvaksi sopii 1200 × 630 pikselin kuva.' : ''}`));
     score += Math.round(30 * ogCount / 3);
   } else {
-    checks.push(ck('Open Graph', 'pass', 'og:title, og:description ja og:image löytyvät.'));
+    checks.push(ck('Jakotiedot (Open Graph)', 'pass', 'Jakokuva, otsikko ja kuvaus löytyvät (og:image, og:title, og:description).'));
     score += 30;
   }
 
