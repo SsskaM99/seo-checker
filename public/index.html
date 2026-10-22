@@ -304,6 +304,7 @@ header.stuck .logo img{height:25px}
 .gate-error{font-size:13px;color:var(--fail);margin:-4px 0 10px;text-align:left}
 .gate-error:empty{display:none}
 .gate-note{font-size:12px;color:var(--muted);margin-top:10px}
+.gate-card .req{color:var(--turq-dark);font-weight:700}
 .gate-note a{color:var(--muted);text-decoration:underline}
 
 /* Full results */
@@ -470,13 +471,13 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
         <li>Tulokset aukeavat myös tälle sivulle</li>
       </ul>
       <form id="email-form">
-        <label for="email-input" class="sr-only">Sähköpostiosoite</label>
-        <input type="email" id="email-input" autocomplete="email" placeholder="sähköpostiosoite" required>
+        <label for="email-input" class="sr-only">Sähköpostiosoite (pakollinen)</label>
+        <input type="email" id="email-input" autocomplete="email" placeholder="sähköpostiosoite *" required>
         <label for="phone-input" class="sr-only">Puhelinnumero (vapaaehtoinen)</label>
         <input type="tel" id="phone-input" autocomplete="tel" placeholder="puhelinnumero (vapaaehtoinen)">
         <div class="checkbox-row">
           <input type="checkbox" id="own-email-check" required>
-          <label for="own-email-check">Vahvistan, että sähköpostiosoite on oma tai edustamani yrityksen osoite.</label>
+          <label for="own-email-check">Vahvistan, että sähköpostiosoite on oma tai edustamani yrityksen osoite.<span class="req" aria-hidden="true"> *</span></label>
         </div>
         <div class="checkbox-row">
           <input type="checkbox" id="newsletter-check">
@@ -485,7 +486,7 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
         <p class="gate-error" id="gate-error" role="alert"></p>
         <button type="submit" class="btn-gate" id="unlock-btn">Lähetä raportti sähköpostiin</button>
       </form>
-      <p class="gate-note">Käytämme sähköpostiosoitetta raportin ja enintään kahden muistutusviestin lähettämiseen. Uutiskirjettä lähetämme vain, jos annatte siihen suostumuksen. <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p>
+      <p class="gate-note"><span class="req">*</span> Pakollinen tieto. Käytämme sähköpostiosoitetta raportin ja enintään kahden muistutusviestin lähettämiseen. Uutiskirjettä lähetämme vain, jos annatte siihen suostumuksen. <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p>
     </div>
   </div>
 </div>
