@@ -609,47 +609,31 @@ function buildFollowupHTML({ url, score, categories }) {
   ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivulla seosales.fi. Muistutuksia l&auml;hetet&auml;&auml;n enint&auml;&auml;n kaksi, eik&auml; muita viestej&auml; l&auml;hetet&auml; ilman lupaasi.')}`);
 }
 
-// Toinen muistutus noin kolmen viikon kuluttua, vain jos pisteet jäivät alle 80: lyhyt kysymys,
-// silloiset tärkeimmät kohteet, uusi analyysi ja kutsu keskusteluun.
+// Toinen muistutus muutaman viikon kuluttua, vain jos pisteet jäivät alle 80. Tarkoituksella
+// tekstipohjainen kuin henkilökohtainen viesti: ei pistepaneelia eikä listoja, yksi painike uuteen analyysiin.
 function buildLateFollowupHTML({ url, score, categories }) {
   const host = hostOf(url);
-  const top = prioritizedIssues(categories).issues.slice(0, 3);
+  const top = prioritizedIssues(categories).issues.slice(0, 3).map(ch => `<strong style="color:#17161C">${esc(ch.label)}</strong>`);
+  const topText = top.length > 1 ? `${top.slice(0, -1).join(', ')} ja ${top[top.length - 1]}` : top[0];
+  const p = 'margin:0 0 18px';
+  const c = EMAIL.contact;
 
-  const topBlock = top.length ? `
-  <tr><td style="padding:8px 40px 6px">
-    ${eyebrow('Tärkeimmät kehityskohteet analyysissä')}
+  return emailShell('K&auml;vit muutama viikko sitten l&auml;pi sivustosi n&auml;kyvyyden. Oletko saanut korjauksiin apua?', `
+  <tr><td style="padding:40px 40px 8px;font-size:16px;color:#34333C;line-height:1.7">
+    <p style="${p}">Hei,</p>
+    <p style="${p}">k&auml;vit muutama viikko sitten l&auml;pi sivuston <strong style="color:#17161C">${esc(host)}</strong> n&auml;kyvyyden. Kokonaispisteet olivat silloin ${score}/100${topText ? `, ja eniten tulokseen vaikuttivat ${topText}` : ''}.</p>
+    <p style="${p}">Oletko saanut korjauksiin apua? Moni t&auml;rkeimmist&auml; kohdista on nopea korjata, ja ne auttavat oikeita asiakkaita l&ouml;yt&auml;m&auml;&auml;n teid&auml;t sek&auml; Googlesta ett&auml; teko&auml;lyhauista.</p>
+    <p style="margin:0 0 22px">Jos olet jo tehnyt korjauksia, n&auml;et uudesta analyysist&auml;, miten tilanne on muuttunut:</p>
   </td></tr>
-  ${top.map((ch, i) => numberedIssue(ch, i, false)).join('')}` : '';
-
-  return emailShell('K&auml;vit kolme viikkoa sitten l&auml;pi sivustosi n&auml;kyvyyden. Oletko saanut korjauksiin apua?', `
-  <tr><td style="background:#17161C;padding:22px 40px">
-    <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td valign="middle">${emailLogo('left')}</td>
-      <td valign="middle" align="right" style="font-family:${FONT_MONO};font-size:12px;color:#C6C2D1;letter-spacing:0.04em">${esc(host)} &middot; <span style="color:${scoreDarkHex(score)};font-weight:500">${score}/100</span></td>
-    </tr></table>
+  <tr><td style="padding:0 40px 30px">
+    <a href="https://seosales.fi/nakyvyysanalyysi.html" style="display:inline-block;background:#17161C;color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;border-radius:8px;text-decoration:none">Tee analyysi uudelleen</a>
   </td></tr>
-
-  <tr><td style="padding:32px 40px 16px;font-size:16px;color:#34333C;line-height:1.65">
-    <p style="margin:0 0 16px">Hei,</p>
-    <p style="margin:0 0 16px">k&auml;vit kolme viikkoa sitten l&auml;pi sivuston <strong style="color:#17161C">${esc(host)}</strong> n&auml;kyvyyden. Kokonaispisteet olivat <strong style="color:${scoreTextHex(score)}">${score}/100</strong>.</p>
-    <p style="margin:0">Oletko saanut korjauksiin apua? Moni t&auml;rkeimmist&auml; kohdista on nopea korjata, ja ne auttavat oikeita asiakkaita l&ouml;yt&auml;m&auml;&auml;n teid&auml;t sek&auml; Googlesta ett&auml; teko&auml;lyhauista.${top.length ? ' N&auml;m&auml; vaikuttivat tulokseen eniten:' : ''}</p>
+  <tr><td style="padding:0 40px 36px;font-size:16px;color:#34333C;line-height:1.7">
+    <p style="${p}">Jos haluat k&auml;yd&auml; tulokset l&auml;pi yhdess&auml;, <a href="${EMAIL.ctaUrl}" style="color:#6D4AFF;text-decoration:underline;font-weight:600">varaa maksuton keskustelu</a> tai vastaa suoraan t&auml;h&auml;n viestiin. Katsomme silloin, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;.</p>
+    <p style="margin:0">Terveisin<br>
+    <strong style="color:#17161C">${esc(c.name)}</strong><br>
+    SEO Sales &middot; <a href="tel:${c.tel}" style="color:#34333C;text-decoration:none">${c.phone}</a></p>
   </td></tr>
-
-  ${topBlock}
-
-  <tr><td style="padding:20px 40px 0;font-size:15px;color:#34333C;line-height:1.6">
-    <p style="margin:0">Jos olet jo tehnyt korjauksia, n&auml;et uudesta analyysist&auml;, miten tilanne on muuttunut. <a href="https://seosales.fi/nakyvyysanalyysi.html" style="color:#6D4AFF;text-decoration:none;font-weight:600">Tee analyysi uudelleen &rarr;</a></p>
-  </td></tr>
-
-  <tr><td style="padding:28px 40px 4px;font-size:16px;color:#34333C;line-height:1.65">
-    <p style="margin:0 0 8px;font-family:${FONT_HEAD};font-size:19px;font-weight:600;color:#17161C">K&auml;yd&auml;&auml;nk&ouml; tulokset l&auml;pi yhdess&auml;?</p>
-    <p style="margin:0 0 16px">Maksuttomassa keskustelussa katsomme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;. Keskustelu ei sido mihink&auml;&auml;n.</p>
-  </td></tr>
-  <tr><td style="padding:12px 40px 0">
-    <a href="${EMAIL.ctaUrl}" style="display:inline-block;background:#17161C;color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
-  </td></tr>
-
-  ${contactBlock('Voit my&ouml;s vastata suoraan t&auml;h&auml;n viestiin tai soittaa minulle.')}
 
   ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivulla seosales.fi. T&auml;m&auml; on viimeinen muistutus, eik&auml; muita viestej&auml; l&auml;hetet&auml; ilman lupaasi.')}`);
 }
