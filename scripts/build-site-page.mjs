@@ -23,7 +23,8 @@ const replace = (from, to) => {
 replace('href="/favicon.svg?v=2"', 'href="favicon.svg"');
 replace('src="/seo-sales-logo.svg"', 'src="seo-sales-logo.svg"');
 replace('<meta name="description"', '<link rel="canonical" href="https://seosales.fi/nakyvyysanalyysi.html">\n<meta name="description"');
-// Sivuston sisäiset linkit avautuvat samaan välilehteen.
+// Sivuston sisäiset linkit avautuvat samaan välilehteen. Poikkeus: muodossa rel="noopener" target="_blank"
+// kirjoitettu linkki (lomakkeen tietosuojalinkki) avautuu edelleen uuteen, jottei täytetty lomake katoa.
 replace('<a href="https://seosales.fi/" class="logo">', '<a href="/" class="logo">');
 html = html.replace(/href="https:\/\/seosales\.fi\/([a-z0-9-]+\.html)"( class="[^"]*")?( target="_blank" rel="noopener")?/g, 'href="$1"$2');
 html = html.replace('<a href="https://seosales.fi" target="_blank" rel="noopener">SEO Sales</a>', '<a href="index.html">SEO Sales</a>');

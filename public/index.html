@@ -312,6 +312,7 @@ header.stuck .logo img{height:25px}
 .gate-error{font-size:13px;color:var(--fail);margin:-4px 0 10px;text-align:left}
 .gate-error:empty{display:none}
 .gate-note{font-size:12px;color:var(--muted);margin-top:10px}
+.gate-card .checkbox-row label a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .gate-card .req{color:var(--turq-dark);font-weight:700}
 .gate-note a{color:var(--muted);text-decoration:underline}
 
@@ -354,12 +355,12 @@ header.stuck .logo img{height:25px}
 }
 .btn-cta:hover{transform:translateY(-1px);box-shadow:0 10px 22px -14px rgba(23,22,28,.7)}
 /* Keskustelupainike ensisijaisena, arviolinkit kevyempinä sen vieressä */
-.cta-actions{display:flex;align-items:center;justify-content:center;gap:20px 36px;flex-wrap:wrap}
-.cta-reviews{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;max-width:380px;text-align:left}
-.cta-reviews p{flex-basis:100%;font-size:13px;color:var(--text-on-dark);line-height:1.5;margin:0}
-.cta-reviews a{font-size:13px;font-weight:600;color:#F5F3EE;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:7px 14px;transition:border-color .2s,background .2s}
-.cta-reviews a:hover{border-color:var(--turq-bright);background:rgba(255,255,255,.06)}
-@media(max-width:640px){.cta-reviews{text-align:center}}
+/* Arviolinkit toissijaisina pääpainikkeen alla, ohuen viivan erottamina ja samalla keskilinjalla */
+.cta-reviews{max-width:520px;margin:40px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.1)}
+.cta-reviews p{font-size:13px;color:var(--text-on-dark);line-height:1.5;margin:0 0 12px}
+.cta-review-links{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.cta-review-links a{font-size:13px;font-weight:600;color:#F5F3EE;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:7px 14px;transition:border-color .2s,background .2s}
+.cta-review-links a:hover{border-color:var(--turq-bright);background:rgba(255,255,255,.06)}
 
 /* Footer */
 footer{padding:28px 0;text-align:center;border-top:1px solid var(--line)}
@@ -491,7 +492,7 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
         <input type="tel" id="phone-input" autocomplete="tel" placeholder="puhelinnumero (vapaaehtoinen)">
         <div class="checkbox-row">
           <input type="checkbox" id="own-email-check" required>
-          <label for="own-email-check">Vahvistan, että sähköpostiosoite on oma tai edustamani yrityksen osoite.<span class="req" aria-hidden="true"> *</span></label>
+          <label for="own-email-check">Vahvistan, että sähköpostiosoite on oma tai edustamani yrityksen osoite, ja olen lukenut <a href="https://seosales.fi/tietosuojaseloste.html" rel="noopener" target="_blank">tietosuojaselosteen</a>.<span class="req" aria-hidden="true"> *</span></label>
         </div>
         <div class="checkbox-row" id="newsletter-row" hidden>
           <input type="checkbox" id="newsletter-check">
@@ -500,7 +501,7 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
         <p class="gate-error" id="gate-error" role="alert"></p>
         <button type="submit" class="btn-gate" id="unlock-btn">Lähetä raportti sähköpostiin</button>
       </form>
-      <p class="gate-note"><span class="req">*</span> Pakollinen tieto. Käytämme sähköpostiosoitetta raportin ja enintään kahden muistutusviestin lähettämiseen. Yritysosoitteisiin lähetämme myös SEO Salesin uutiskirjeen, jonka voi perua milloin tahansa. <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p>
+      <p class="gate-note"><span class="req">*</span> Pakollinen tieto. Käytämme sähköpostiosoitetta raportin ja enintään kahden muistutusviestin lähettämiseen.</p>
     </div>
   </div>
 </div>
@@ -516,10 +517,10 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
       <div class="cta-summary" id="cta-summary"></div>
       <p>Analyysi näyttää lähtötilanteen. Keskustelussa katsomme, mitkä korjaukset tuovat teidän yritykselle eniten asiakkaita ja missä järjestyksessä ne kannattaa tehdä. Voimme myös hoitaa korjaukset puolestanne.</p>
     </div>
-    <div class="cta-actions">
-      <a href="https://seosales.fi/yhteys.html" class="btn-cta" target="_blank" rel="noopener">Varaa maksuton keskustelu</a>
-      <div class="cta-reviews">
-        <p>Oliko analyysistä hyötyä? Lyhyt arvio auttaa muita löytämään meidät.</p>
+    <a href="https://seosales.fi/yhteys.html" class="btn-cta" target="_blank" rel="noopener">Varaa maksuton keskustelu</a>
+    <div class="cta-reviews">
+      <p>Oliko analyysistä hyötyä? Lyhyt arvio auttaa muita löytämään meidät.</p>
+      <div class="cta-review-links">
         <a href="https://www.trustpilot.com/evaluate/seosales.fi" target="_blank" rel="noopener">Arvioi Trustpilotissa</a>
         <a href="https://maps.app.goo.gl/SddN6FqofjdUd6Ny7" target="_blank" rel="noopener">Arvioi Googlessa</a>
       </div>
@@ -682,7 +683,7 @@ function showError(code, message) {
 }
 
 // Pakollinen vahvistus: raporttia ei voi tilata kenen tahansa osoitteeseen.
-const ownEmailMsg = () => $('own-email-check').setCustomValidity($('own-email-check').checked ? '' : 'Vahvistakaa, että sähköpostiosoite on teidän oma tai teidän yrityksen osoite.');
+const ownEmailMsg = () => $('own-email-check').setCustomValidity($('own-email-check').checked ? '' : 'Vahvistakaa, että sähköpostiosoite on teidän oma tai teidän yrityksen osoite ja että olette lukeneet tietosuojaselosteen.');
 ownEmailMsg();
 $('own-email-check').addEventListener('change', ownEmailMsg);
 
