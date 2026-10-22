@@ -137,6 +137,14 @@ header.stuck .logo img{height:25px}
 @keyframes navCtaGlow{to{background-position:200% 0}}
 @media(prefers-reduced-motion:reduce){.nav-links>a.nav-cta--analyysi::before{animation:none}}
 @media(max-width:1200px){.nav-links>a.nav-cta--analyysi{color:#F5F3EE!important;font-size:16px;padding:12px 24px!important;margin:20px 0 0}.nav-links>a.nav-cta--analyysi::before{background-image:linear-gradient(90deg,var(--violet-bright),var(--turq-bright),var(--violet-bright))}.nav-links>a.nav-cta--analyysi:hover{background:rgba(255,255,255,.08)!important;color:#fff!important}}
+/* Ota yhteyttä täytettynä painikkeena, jotta se erottuu muista linkeistä (leveä näkymä) */
+@media(min-width:1201px){
+  .nav-links>a[href$="yhteys.html"]{background:var(--navy);color:#fff;padding:9px 18px}
+  .nav-links>a[href$="yhteys.html"]::after{display:none}
+  .nav-links>a[href$="yhteys.html"]:hover{background:var(--ink-2);color:#fff}
+  .dark-hero header .nav-links>a[href$="yhteys.html"]{background:#F5F3EE;color:#17161C}
+  .dark-hero header .nav-links>a[href$="yhteys.html"]:hover{background:#fff;color:#17161C}
+}
 @media(max-width:860px){header .wrap.nav{padding:0 28px}}
 
 /* Hero: liukuu läpikuultavan yläpalkin alle kuten sivuston muillakin sivuilla */
