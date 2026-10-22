@@ -257,6 +257,9 @@ async function fetchPage(input) {
     finalUrl,
     status: res.status,
     responseTimeMs,
+    // Tekniikan tarkistuksia varten: HTML:n koko purettuna ja pakkaustapa.
+    htmlBytes: bytes.length,
+    contentEncoding: (res.headers.get('content-encoding') || '').toLowerCase(),
     // Julkaisualustan tunnistusta varten.
     headers: Object.fromEntries(['server', 'x-powered-by', 'x-generator', 'x-wix-request-id', 'x-shopify-stage', 'x-drupal-cache', 'x-hubspot-correlation-id']
       .map(h => [h, res.headers.get(h)]).filter(([, v]) => v)),
@@ -317,11 +320,32 @@ function parseRobots(text) {
   };
 }
 
+// Ohjaako http-osoite suojattuun https-osoitteeseen? Seurataan enintään kolme ohjausta,
+// koska osa palvelimista ohjaa ensin www-osoitteeseen. null = ei voitu tarkistaa.
+async function checkHttpRedirect(finalUrl) {
+  const u = new URL(finalUrl);
+  if (u.protocol !== 'https:') return null;
+  let current = new URL(`http://${u.hostname}/`);
+  try {
+    for (let hop = 0; hop < 3; hop++) {
+      await assertPublicHost(current.hostname);
+      const res = await fetch(current, { headers: { ...BASE_HEADERS, 'User-Agent': UA_TOOL }, redirect: 'manual', signal: AbortSignal.timeout(5000), dispatcher });
+      res.body?.cancel().catch(() => {});
+      const loc = res.headers.get('location');
+      if (res.status < 300 || res.status >= 400 || !loc) return false;
+      current = new URL(loc, current);
+      if (current.protocol === 'https:') return true;
+    }
+    return false;
+  } catch { return null; }
+}
+
 async function fetchSiteFiles(finalUrl) {
   const origin = new URL(finalUrl).origin;
-  const [robotsRes, llmsRes] = await Promise.all([
+  const [robotsRes, llmsRes, httpsRedirect] = await Promise.all([
     fetchText(`${origin}/robots.txt`),
     fetchText(`${origin}/llms.txt`, 64 * 1024),
+    checkHttpRedirect(finalUrl),
   ]);
   // llms.txt: Markdown-tiivistelmä tekoälyille. Puuttuvan tiedoston tilalle palautettu HTML-sivu ei kelpaa.
   const llmsOk = !!llmsRes && !/^\s*</.test(llmsRes.text) && !/text\/html/i.test(llmsRes.contentType) && llmsRes.text.trim().length >= 30;
@@ -338,7 +362,7 @@ async function fetchSiteFiles(finalUrl) {
     if (r && /<(urlset|sitemapindex)[\s>]/i.test(r.text)) { sitemapOk = true; break; }
   }
 
-  return { robotsOk: robotsValid, robots, sitemapOk, llmsOk };
+  return { robotsOk: robotsValid, robots, sitemapOk, llmsOk, httpsRedirect };
 }
 
 module.exports = { fetchPage, fetchSiteFiles, FetchError, AI_BOTS, parseRobots, isPrivateIp, safeLookup };

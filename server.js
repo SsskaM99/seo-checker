@@ -108,7 +108,7 @@ function cacheAnalysis(results) {
 async function runAnalysis(input) {
   const page = await fetchPage(input);
   const siteFiles = await fetchSiteFiles(page.finalUrl);
-  return analyze(page.html, page.finalUrl, { responseTimeMs: page.responseTimeMs, headers: page.headers, ...siteFiles });
+  return analyze(page.html, page.finalUrl, { responseTimeMs: page.responseTimeMs, headers: page.headers, htmlBytes: page.htmlBytes, contentEncoding: page.contentEncoding, ...siteFiles });
 }
 
 app.post('/api/check', async (req, res) => {
@@ -897,6 +897,93 @@ function analyzeTechnical($, url, extra = {}) {
       score += 10;
     } else {
       checks.push(ck('Sivukartta', 'warn', 'XML-sivukarttaa (sitemap.xml) ei löytynyt.', 'Luo XML-sivukartta ja lähetä se Google Search Consoleen. Useimmat julkaisujärjestelmät, kuten WordPress, tekevät sen automaattisesti tai lisäosalla. Sivukartan avulla hakukone löytää kaikki sivut.'));
+    }
+  }
+
+  // http-osoitteen ohjaus https-osoitteeseen
+  if (extra.httpsRedirect != null) {
+    max += 10;
+    if (extra.httpsRedirect) {
+      checks.push(ck('HTTPS-ohjaus', 'pass', 'http-osoite ohjaa suojattuun https-osoitteeseen.'));
+      score += 10;
+    } else {
+      checks.push(ck('HTTPS-ohjaus', 'warn', 'http-osoite ei ohjaa https-osoitteeseen.', 'Ohjaa kaikki http-osoitteet pysyvällä uudelleenohjauksella (301) https-osoitteisiin. Muuten sama sivu on hakukoneille kahdessa osoitteessa, ja vanhoista linkeistä tuleva kävijä päätyy suojaamattomalle sivulle.'));
+    }
+  }
+
+  // Pakkaus: isot HTML-sivut kannattaa lähettää pakattuina
+  if (extra.contentEncoding != null && extra.htmlBytes > 5000) {
+    max += 10;
+    if (/\b(gzip|br|zstd|deflate)\b/.test(extra.contentEncoding)) {
+      checks.push(ck('Pakkaus', 'pass', `Sivu lähetetään pakattuna (${extra.contentEncoding}).`));
+      score += 10;
+    } else {
+      checks.push(ck('Pakkaus', 'warn', 'Palvelin lähettää sivun pakkaamattomana.', 'Ota palvelimella käyttöön gzip- tai Brotli-pakkaus. Se pienentää ladattavan sivun kokoa usein yli puoleen ja nopeuttaa latausta erityisesti mobiiliyhteyksillä. Useimmissa palveluissa pakkauksen saa päälle asetuksista tai välimuistilisäosalla.'));
+    }
+  }
+
+  // HTML:n koko
+  if (extra.htmlBytes) {
+    max += 10;
+    const kb = Math.round(extra.htmlBytes / 1024);
+    if (kb <= 200) {
+      checks.push(ck('Sivun koko', 'pass', `Sivun HTML on kevyt (${kb} kt).`));
+      score += 10;
+    } else if (kb <= 600) {
+      checks.push(ck('Sivun koko', 'warn', `Sivun HTML on raskas (${kb} kt).`, 'Siirrä sivulle upotettuja tyylejä, skriptejä ja dataa erillisiin tiedostoihin ja poista käyttämättömät osiot. Raskas HTML hidastaa sivun ensimmäistä näkymää, koska selain joutuu lataamaan kaiken ennen kuin voi näyttää sisällön.'));
+      score += 4;
+    } else {
+      checks.push(ck('Sivun koko', 'fail', `Sivun HTML on hyvin raskas (${kb} kt).`, 'Selvitä, mikä kasvattaa sivun kokoa: usein syynä ovat sivulle upotetut tyylit, skriptit, kuvat tai sivunrakentajan ylimääräinen koodi. Tavoite on alle 200 kt.'));
+    }
+  }
+
+  // Latautumista estävät skriptit: <head>-osan skriptit ilman async- tai defer-määritettä
+  max += 10;
+  const blocking = $('head script[src]').filter((_, el) => {
+    const a = el.attribs || {};
+    return !('async' in a) && !('defer' in a) && !/module/i.test(a.type || '');
+  }).length;
+  if (blocking === 0) {
+    checks.push(ck('Latautumista estävät skriptit', 'pass', 'Sivun yläosan skriptit eivät viivästä sisällön näyttämistä.'));
+    score += 10;
+  } else if (blocking <= 2) {
+    checks.push(ck('Latautumista estävät skriptit', 'warn', `Sivun yläosassa on ${blocking} skriptiä, jotka viivästävät sisällön näyttämistä.`, 'Lisää skripteille async- tai defer-määrite tai siirrä ne sivun loppuun. Silloin selain näyttää sisällön ensin eikä jää odottamaan skriptien latautumista.'));
+    score += 5;
+  } else {
+    checks.push(ck('Latautumista estävät skriptit', 'fail', `Sivun yläosassa on ${blocking} skriptiä, jotka viivästävät sisällön näyttämistä.`, 'Lisää skripteille async- tai defer-määrite, siirrä ne sivun loppuun tai poista tarpeettomat. Jokainen tällainen skripti pitää kävijää tyhjän sivun edessä, kunnes se on ladattu.'));
+  }
+
+  // Kuvat: mitat (sivu ei hypi latautuessa), viivästetty lataus ja nykyaikaiset kuvaformaatit
+  const imgs = $('img').filter((_, el) => {
+    const src = el.attribs?.src || el.attribs?.['data-src'] || '';
+    return src && !src.startsWith('data:') && el.attribs?.width !== '1';
+  });
+  if (imgs.length >= 3) {
+    max += 10;
+    const noSize = imgs.filter((_, el) => !(el.attribs.width && el.attribs.height) && !/aspect-ratio|height\s*:/i.test(el.attribs.style || '')).length;
+    const share = noSize / imgs.length;
+    if (share <= 0.2) {
+      checks.push(ck('Kuvien mitat', 'pass', 'Kuville on määritelty mitat, joten sivu ei hypi latautuessaan.'));
+      score += 10;
+    } else {
+      checks.push(ck('Kuvien mitat', share <= 0.5 ? 'warn' : 'fail', `${noSize}/${imgs.length} kuvalta puuttuvat mitat, joten sivu voi hypähdellä latautuessaan.`, 'Lisää jokaiselle kuvalle width- ja height-määritteet. Selain varaa kuvalle tilan etukäteen, eikä teksti siirry kävijän lukiessa. Google mittaa tätä osana sivukokemusta (CLS).'));
+      if (share <= 0.5) score += 5;
+    }
+
+    max += 10;
+    const lazy = imgs.filter((_, el) => el.attribs.loading === 'lazy' || 'data-src' in el.attribs || 'data-lazy-src' in el.attribs).length;
+    const modernRe = /\.(webp|avif)(\?|$|\s)|[?&](fm|format|f)=(webp|avif|auto)|auto=format/i;
+    const modern = imgs.filter((_, el) => modernRe.test(el.attribs.src || '') || modernRe.test(el.attribs.srcset || '')).length
+      + $('picture source[type*="webp"], picture source[type*="avif"]').length;
+    const lazyOk = imgs.length < 5 || lazy > 0;
+    const modernOk = modern > 0;
+    if (lazyOk && modernOk) {
+      checks.push(ck('Kuvien keveys', 'pass', 'Kuvat ladataan kevyesti: nykyaikaiset kuvaformaatit ja viivästetty lataus ovat käytössä.'));
+      score += 10;
+    } else {
+      const missing = [!modernOk && 'nykyaikaiset kuvaformaatit (WebP tai AVIF)', !lazyOk && 'viivästetty lataus (loading="lazy")'].filter(Boolean).join(' ja ');
+      checks.push(ck('Kuvien keveys', lazyOk || modernOk ? 'warn' : 'fail', `Kuvista puuttuvat ${missing}.`, 'Tallenna kuvat WebP- tai AVIF-muodossa: ne ovat tyypillisesti selvästi kevyempiä kuin JPEG ja PNG. Lisää alempana sivulla oleville kuville loading="lazy", jolloin ne ladataan vasta, kun kävijä vierittää niiden kohdalle. Useimmissa julkaisujärjestelmissä molemmat onnistuvat lisäosalla.'));
+      if (lazyOk || modernOk) score += 5;
     }
   }
 
