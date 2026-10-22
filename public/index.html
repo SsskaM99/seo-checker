@@ -259,10 +259,12 @@ header.stuck .logo img{height:25px}
 .chip.pass{background:#E8F9F0;color:var(--pass-text)}
 
 /* Blurred preview + email gate */
-.gate-wrapper{position:relative;overflow:hidden}
-.blurred-preview{filter:blur(6px);opacity:.55;pointer-events:none;padding:0 0 32px;user-select:none;max-height:480px;overflow:hidden}
+/* Esikatselu ja kortti samassa ruudukon solussa: alue kasvaa kortin mittaiseksi, jos kortti on korkeampi. */
+.gate-wrapper{position:relative;overflow:hidden;display:grid}
+.blurred-preview,.gate-overlay{grid-area:1/1}
+.blurred-preview{position:relative;align-self:start;filter:blur(6px);opacity:.55;pointer-events:none;padding:0 0 32px;user-select:none;max-height:480px;overflow:hidden}
 .blurred-preview::after{content:"";position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(transparent,var(--bg))}
-.gate-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5}
+.gate-overlay{display:flex;align-items:center;justify-content:center;padding:24px 0;z-index:5}
 .gate-card{background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r-lg);padding:40px 36px;max-width:460px;width:90%;text-align:center;box-shadow:0 24px 60px -20px rgba(23,22,28,.12)}
 .gate-card h2{font-size:22px;margin-bottom:6px}
 .gate-card h2 em{color:var(--turq-dark);font-style:normal}
