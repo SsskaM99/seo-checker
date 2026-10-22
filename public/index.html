@@ -290,6 +290,7 @@ header.stuck .logo img{height:25px}
 }
 .gate-card input[type="tel"]::placeholder{color:var(--muted)}
 .gate-card input[type="tel"]:focus{border-color:var(--violet)}
+.gate-card .checkbox-row[hidden]{display:none}
 .gate-card .checkbox-row{display:flex;align-items:flex-start;gap:8px;text-align:left;margin-bottom:16px;cursor:pointer}
 .gate-card .checkbox-row input{width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--turq);cursor:pointer}
 .gate-card .checkbox-row label{font-size:13px;color:var(--muted);line-height:1.5;cursor:pointer}
@@ -477,14 +478,14 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
           <input type="checkbox" id="own-email-check" required>
           <label for="own-email-check">Vahvistan, että sähköpostiosoite on oma tai edustamani yrityksen osoite.<span class="req" aria-hidden="true"> *</span></label>
         </div>
-        <div class="checkbox-row">
+        <div class="checkbox-row" id="newsletter-row" hidden>
           <input type="checkbox" id="newsletter-check">
           <label for="newsletter-check">Suostun vastaanottamaan SEO Salesin uutiskirjeen: ajankohtaisia näkemyksiä näkyvyydestä, myynnistä ja kasvusta. Suostumuksen voi perua milloin tahansa.</label>
         </div>
         <p class="gate-error" id="gate-error" role="alert"></p>
         <button type="submit" class="btn-gate" id="unlock-btn">Lähetä raportti sähköpostiin</button>
       </form>
-      <p class="gate-note"><span class="req">*</span> Pakollinen tieto. Käytämme sähköpostiosoitetta raportin ja enintään kahden muistutusviestin lähettämiseen. Uutiskirjettä lähetämme vain, jos annatte siihen suostumuksen. <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p>
+      <p class="gate-note"><span class="req">*</span> Pakollinen tieto. Käytämme sähköpostiosoitetta raportin ja enintään kahden muistutusviestin lähettämiseen. Yritysosoitteisiin lähetämme myös SEO Salesin uutiskirjeen, jonka voi perua milloin tahansa. <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p>
     </div>
   </div>
 </div>
@@ -662,11 +663,19 @@ const ownEmailMsg = () => $('own-email-check').setCustomValidity($('own-email-ch
 ownEmailMsg();
 $('own-email-check').addEventListener('change', ownEmailMsg);
 
+// Uutiskirjeen suostumusruutu näytetään vain ilmaisten sähköpostipalvelujen osoitteille (sama lista kuin server.js:ssä).
+// Yritysosoitteisiin uutiskirje lähtee ilman ruutua, mistä kerrotaan lomakkeen alla.
+const FREE_MAIL_DOMAINS = new Set(['gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.fi', 'outlook.com', 'outlook.fi', 'live.com', 'live.fi', 'msn.com', 'yahoo.com', 'ymail.com', 'icloud.com', 'me.com', 'mac.com', 'aol.com', 'gmx.com', 'gmx.net', 'mail.com', 'proton.me', 'protonmail.com', 'pm.me', 'tutanota.com', 'tuta.io', 'yandex.com', 'luukku.com', 'suomi24.fi', 'elisanet.fi', 'kolumbus.fi', 'saunalahti.fi', 'netti.fi', 'welho.com', 'dnainternet.net', 'kotiposti.net', 'pp.inet.fi', 'sci.fi', 'jippii.fi', 'mbnet.fi']);
+$('email-input').addEventListener('input', () => {
+  const domain = $('email-input').value.trim().toLowerCase().split('@')[1] || '';
+  $('newsletter-row').hidden = !FREE_MAIL_DOMAINS.has(domain);
+});
+
 $('email-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = $('email-input').value.trim();
   const phone = $('phone-input').value.trim();
-  const newsletter = $('newsletter-check').checked;
+  const newsletter = !$('newsletter-row').hidden && $('newsletter-check').checked;
   if (!email) return;
   $('unlock-btn').disabled = true;
   let emailSent = false;

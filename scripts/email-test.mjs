@@ -103,16 +103,24 @@ try {
   check('toinen muistutus ei sisällä selaimen syöttämää tekstiä', !late?.html.includes('HUIJAUS'));
   check('idempotenssiavaimet asetettu', received.every(x => /^(report|followup|late-followup)-/.test(x.headers['idempotency-key'] || '')));
   const leads = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'leads.json'), 'utf8'));
-  check('liidi tallennettu uutiskirjesuostumuksen kanssa', leads.length === 1 && leads[0].newsletter === true && leads[0].score === check1.score);
+  check('yritysosoite liitetään uutiskirjeeseen', leads.length === 1 && leads[0].newsletter === 'yritysosoite' && leads[0].score === check1.score, JSON.stringify(leads[0]?.newsletter));
 
   fs.mkdirSync(PREVIEW_DIR, { recursive: true });
   fs.writeFileSync(path.join(PREVIEW_DIR, 'raportti.html'), report?.html || '');
   fs.writeFileSync(path.join(PREVIEW_DIR, 'muistutus.html'), followup?.html || '');
   fs.writeFileSync(path.join(PREVIEW_DIR, 'muistutus2.html'), late?.html || '');
 
+  console.log('3b. Uutiskirje ilmaisosoitteille vain suostumuksella');
+  await post('/api/lead', { email: 'ei.suostu@gmail.com', newsletter: false, analysisId: check1.analysisId });
+  await post('/api/lead', { email: 'suostuu@gmail.com', newsletter: true, analysisId: check1.analysisId });
+  const leads3b = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'leads.json'), 'utf8'));
+  check('gmail ilman ruutua: ei uutiskirjettä', leads3b.find(l => l.email === 'ei.suostu@gmail.com')?.newsletter === false);
+  check('gmail ruudun kanssa: suostumus', leads3b.find(l => l.email === 'suostuu@gmail.com')?.newsletter === 'suostumus');
+  received.length = 0;
+
   console.log('4. Vanhentunut analyysi');
   const r4 = await post('/api/lead', { email: 'toinen@esimerkki.fi', analysisId: 'olematon', url: 'https://seosales.fi/' });
-  check('analyysi ajetaan uudelleen ja viestit lähtevät', r4.ok && received.length === 6, `status ${r4.status}, viestejä ${received.length}`);
+  check('analyysi ajetaan uudelleen ja viestit lähtevät', r4.ok && received.length === 3, `status ${r4.status}, viestejä ${received.length}`);
 
   console.log('5. Resend-virhe');
   failNext = true;

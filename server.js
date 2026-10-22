@@ -420,6 +420,11 @@ async function sendEmail({ to, subject, html, scheduledAt, idempotencyKey, tag }
 // Tavalliset sähköpostiosoitteen merkit; esimerkiksi <, > ja rivinvaihdot hylätään.
 const EMAIL_RE = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
 
+// Ilmaiset sähköpostipalvelut: osoitteet ovat yleensä yksityishenkilöiden, joten uutiskirje vaatii suostumuksen.
+// Yritysosoitteisiin uutiskirje lähtee ilman erillistä suostumusta (B2B-markkinointi, kielto milloin tahansa).
+// Sama lista on public/index.html:ssä, jossa se näyttää suostumusruudun vain näille osoitteille.
+const FREE_MAIL_DOMAINS = new Set(['gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.fi', 'outlook.com', 'outlook.fi', 'live.com', 'live.fi', 'msn.com', 'yahoo.com', 'ymail.com', 'icloud.com', 'me.com', 'mac.com', 'aol.com', 'gmx.com', 'gmx.net', 'mail.com', 'proton.me', 'protonmail.com', 'pm.me', 'tutanota.com', 'tuta.io', 'yandex.com', 'luukku.com', 'suomi24.fi', 'elisanet.fi', 'kolumbus.fi', 'saunalahti.fi', 'netti.fi', 'welho.com', 'dnainternet.net', 'kotiposti.net', 'pp.inet.fi', 'sci.fi', 'jippii.fi', 'mbnet.fi']);
+
 app.post('/api/lead', async (req, res) => {
   if (rateLimited(req.ip, 'lead', 5)) {
     return res.status(429).json({ error: 'Liian monta pyyntöä. Voitte kokeilla hetken kuluttua uudelleen.', code: 'rate_limited' });
@@ -446,7 +451,8 @@ app.post('/api/lead', async (req, res) => {
     id: crypto.randomUUID(),
     email: cleanEmail,
     phone: String(phone || '').trim().slice(0, 40),
-    newsletter: newsletter === true,
+    // Peruste: 'suostumus' (ilmaisposti + ruutu) tai 'yritysosoite' (B2B, kielto milloin tahansa).
+    newsletter: FREE_MAIL_DOMAINS.has(cleanEmail.split('@')[1]) ? (newsletter === true ? 'suostumus' : false) : 'yritysosoite',
     url: results.url,
     score: results.score,
     timestamp: new Date().toISOString(),
@@ -496,7 +502,7 @@ app.post('/api/lead', async (req, res) => {
         phone: lead.phone || '-',
         sivusto: lead.url,
         pistemaara: `${lead.score}/100`,
-        uutiskirje: lead.newsletter ? 'Kyllä' : 'Ei',
+        uutiskirje: lead.newsletter === 'suostumus' ? 'Kyllä (suostumus)' : lead.newsletter ? 'Kyllä (yritysosoite, voi perua)' : 'Ei',
         muistutus: followupAt,
         toinen_muistutus: lateFollowupAt || `Ei (pisteet vähintään ${CONFIG.lateFollowupBelow})`,
         aika: lead.timestamp,
