@@ -27,6 +27,19 @@ replace('<meta name="description"', '<link rel="canonical" href="https://seosale
 replace('<a href="https://seosales.fi/" class="logo">', '<a href="/" class="logo">');
 html = html.replace(/href="https:\/\/seosales\.fi\/([a-z0-9-]+\.html)"( class="[^"]*")?( target="_blank" rel="noopener")?/g, 'href="$1"$2');
 html = html.replace('<a href="https://seosales.fi" target="_blank" rel="noopener">SEO Sales</a>', '<a href="index.html">SEO Sales</a>');
+// Mitä analyysi kertoo -kysymykset staattisena HTML:nä ja FAQ-rakenteena: hakukoneet ja tekoälybotit
+// eivät yleensä aja JavaScriptiä. Lähde on sivun CATS-olio, joten tekstit ovat yhdessä paikassa.
+const catsSrc = /const CATS = (\{[\s\S]*?\n\});/.exec(html);
+if (!catsSrc) throw new Error('CATS-oliota ei löytynyt');
+const CATS = new Function(`return ${catsSrc[1]}`)();
+const escHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+replace('<div class="intro-grid" id="intro-grid"></div>', '<div class="intro-grid" id="intro-grid">' + Object.values(CATS).map(c =>
+  `<div class="intro-item"><div class="cat-label">${escHtml(c.label)}</div><h3>${escHtml(c.question)}</h3><p>${escHtml(c.why)}</p></div>`).join('') + '</div>');
+const faq = {
+  '@context': 'https://schema.org', '@type': 'FAQPage',
+  mainEntity: Object.values(CATS).map(c => ({ '@type': 'Question', name: c.question, acceptedAnswer: { '@type': 'Answer', text: `${c.why} ${c.info}` } })),
+};
+replace('</head>', `<script type="application/ld+json">${JSON.stringify(faq).replace(/</g, '\\u003c')}</script>\n</head>`);
 // Analyysipalvelun osoite ennen sivun omaa skriptiä.
 const firstScript = html.search(/\r?\n<script>\r?\n/);
 if (firstScript === -1) throw new Error('Sivun skriptiä ei löytynyt');

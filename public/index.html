@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Näkyvyysanalyysi — SEO Sales</title>
+<title>Maksuton näkyvyysanalyysi verkkosivuille | SEO Sales</title>
 <meta name="description" content="Miten yrityksen verkkosivut näkyvät hakukoneissa ja tekoälyhauissa? Maksuton analyysi kertoo, mikä tuo jo asiakkaita ja mikä kannattaa korjata ensin.">
 <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -432,7 +432,7 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
       <input type="text" id="url-input" placeholder="esim. yritys.fi" autocomplete="url" required>
       <button type="submit" class="btn-primary" id="check-btn">Analysoi</button>
     </form>
-    <p class="input-meta">Maksuton · Tulokset heti · Kuusi osa-aluetta</p>
+    <p class="input-meta">Maksuton · Tulokset sekunneissa · Ei kirjautumista</p>
   </div>
 </section>
 
@@ -441,7 +441,7 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
 
 <section class="intro" id="intro">
   <div class="wrap">
-    <h2 class="intro-title">Mitä analyysi kertoo</h2>
+    <h2 class="intro-title">Analyysi vastaa kuuteen kysymykseen</h2>
     <div class="intro-grid" id="intro-grid"></div>
   </div>
 </section>
@@ -560,6 +560,7 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
 })();
 
 // Kategoriat: kysymys kertoo hyödyn, info kertoo mitä tarkistetaan ja miksi.
+// build-site-page.mjs kirjoittaa kysymykset sivustoversioon myös staattiseksi HTML:ksi ja FAQ-rakenteeksi.
 const CATS = {
   seo: {
     label: 'Hakukoneet',
@@ -1029,7 +1030,7 @@ function renderIntro() {
     '<p>' + esc(c.why) + '</p></div>'
   ).join('');
 }
-renderIntro();
+if (!$('intro-grid').children.length) renderIntro();
 
 // Etusivun teaser ohjaa tänne osoitteella ?url=…: analyysi käynnistyy heti.
 const startUrl = new URLSearchParams(location.search).get('url');
