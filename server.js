@@ -16,6 +16,9 @@ const CONFIG = {
   replyTo: process.env.REPLY_TO || '',
   formspreeId: process.env.FORMSPREE_KEY || process.env.FORMSPREE_ID || '',
   followupDays: Number(process.env.FOLLOWUP_DAYS || 3),
+  // Toinen muistutus kalenteripäivinä, vain jos kokonaispisteet jäivät alle rajan. Resend ajastaa enintään 30 päivän päähän.
+  lateFollowupDays: Number(process.env.LATE_FOLLOWUP_DAYS || 21),
+  lateFollowupBelow: Number(process.env.LATE_FOLLOWUP_BELOW || 80),
   allowedOrigins: (process.env.ALLOWED_ORIGINS || 'https://seosales.fi,https://www.seosales.fi').split(',').map(s => s.trim()).filter(Boolean),
 };
 
@@ -454,6 +457,7 @@ app.post('/api/lead', async (req, res) => {
   // Lähetetään ennen vastausta: Cloud Run hidastaa prosessia vastauksen jälkeen, jolloin taustalähetys voisi jäädä kesken.
   const host = hostOf(results.url);
   const followupAt = followupTime(new Date(), CONFIG.followupDays).toISOString();
+  const lateFollowupAt = results.score < CONFIG.lateFollowupBelow ? lateFollowupTime(new Date(), CONFIG.lateFollowupDays).toISOString() : null;
   const jobs = [
     sendEmail({
       to: lead.email,
@@ -471,6 +475,16 @@ app.post('/api/lead', async (req, res) => {
       tag: 'muistutus',
     }),
   ];
+  if (lateFollowupAt) {
+    jobs.push(sendEmail({
+      to: lead.email,
+      subject: `Miten sivuston ${host} näkyvyys on edennyt?`,
+      html: buildLateFollowupHTML({ url: results.url, score: results.score, categories: results.categories }),
+      scheduledAt: lateFollowupAt,
+      idempotencyKey: `late-followup-${lead.id}`,
+      tag: 'muistutus2',
+    }));
+  }
 
   if (CONFIG.formspreeId) {
     jobs.push(fetch(`https://formspree.io/f/${CONFIG.formspreeId}`, {
@@ -484,15 +498,17 @@ app.post('/api/lead', async (req, res) => {
         pistemaara: `${lead.score}/100`,
         uutiskirje: lead.newsletter ? 'Kyllä' : 'Ei',
         muistutus: followupAt,
+        toinen_muistutus: lateFollowupAt || `Ei (pisteet vähintään ${CONFIG.lateFollowupBelow})`,
         aika: lead.timestamp,
       }),
       signal: AbortSignal.timeout(10000),
     }).then(r => { if (!r.ok) throw new Error(`Formspree ${r.status}`); }));
   }
 
+  const jobNames = ['raportti', 'muistutus', ...(lateFollowupAt ? ['muistutus2'] : []), 'formspree'];
   const outcome = await Promise.allSettled(jobs);
   outcome.forEach((o, i) => {
-    if (o.status === 'rejected') console.error(`Lähetys ${['raportti', 'muistutus', 'formspree'][i]} epäonnistui (${lead.email}):`, o.reason.message);
+    if (o.status === 'rejected') console.error(`Lähetys ${jobNames[i]} epäonnistui (${lead.email}):`, o.reason.message);
   });
   res.json({ ok: true, emailSent: outcome[0].status === 'fulfilled' });
 });
@@ -513,6 +529,16 @@ function followupTime(now, businessDays) {
     const wd = new Date(day).getUTCDay();
     if (wd !== 0 && wd !== 6) left--;
   }
+  return helsinkiNine(day);
+}
+// Toinen muistutus: days kalenteripäivää analyysin jälkeen, viikonloppu siirtyy maanantaille, klo 9 Suomen aikaa.
+function lateFollowupTime(now, days) {
+  const local = new Date(now.getTime() + helsinkiOffsetMinutes(now) * 60000);
+  let day = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + days);
+  while ([0, 6].includes(new Date(day).getUTCDay())) day += 86400000;
+  return helsinkiNine(day);
+}
+function helsinkiNine(day) {
   const nine = day + 9 * 3600000;
   return new Date(nine - helsinkiOffsetMinutes(new Date(nine)) * 60000);
 }
@@ -580,17 +606,64 @@ function buildFollowupHTML({ url, score, categories }) {
 
   ${reviewBlock()}
 
-  ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivulla seosales.fi. T&auml;m&auml; on ainoa muistutus, eik&auml; muita viestej&auml; l&auml;hetet&auml; ilman lupaasi.')}`);
+  ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivulla seosales.fi. Muistutuksia l&auml;hetet&auml;&auml;n enint&auml;&auml;n kaksi, eik&auml; muita viestej&auml; l&auml;hetet&auml; ilman lupaasi.')}`);
+}
+
+// Toinen muistutus noin kolmen viikon kuluttua, vain jos pisteet jäivät alle 80: lyhyt kysymys,
+// silloiset tärkeimmät kohteet, uusi analyysi ja kutsu keskusteluun.
+function buildLateFollowupHTML({ url, score, categories }) {
+  const host = hostOf(url);
+  const top = prioritizedIssues(categories).issues.slice(0, 3);
+
+  const topBlock = top.length ? `
+  <tr><td style="padding:8px 40px 6px">
+    ${eyebrow('Tärkeimmät kehityskohteet analyysissä')}
+  </td></tr>
+  ${top.map((ch, i) => numberedIssue(ch, i, false)).join('')}` : '';
+
+  return emailShell('K&auml;vit kolme viikkoa sitten l&auml;pi sivustosi n&auml;kyvyyden. Oletko saanut korjauksiin apua?', `
+  <tr><td style="background:#17161C;padding:22px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td valign="middle">${emailLogo('left')}</td>
+      <td valign="middle" align="right" style="font-family:${FONT_MONO};font-size:12px;color:#C6C2D1;letter-spacing:0.04em">${esc(host)} &middot; <span style="color:${scoreDarkHex(score)};font-weight:500">${score}/100</span></td>
+    </tr></table>
+  </td></tr>
+
+  <tr><td style="padding:32px 40px 16px;font-size:16px;color:#34333C;line-height:1.65">
+    <p style="margin:0 0 16px">Hei,</p>
+    <p style="margin:0 0 16px">k&auml;vit kolme viikkoa sitten l&auml;pi sivuston <strong style="color:#17161C">${esc(host)}</strong> n&auml;kyvyyden. Kokonaispisteet olivat <strong style="color:${scoreTextHex(score)}">${score}/100</strong>.</p>
+    <p style="margin:0">Oletko saanut korjauksiin apua? Moni t&auml;rkeimmist&auml; kohdista on nopea korjata, ja ne auttavat oikeita asiakkaita l&ouml;yt&auml;m&auml;&auml;n teid&auml;t sek&auml; Googlesta ett&auml; teko&auml;lyhauista.${top.length ? ' N&auml;m&auml; vaikuttivat tulokseen eniten:' : ''}</p>
+  </td></tr>
+
+  ${topBlock}
+
+  <tr><td style="padding:20px 40px 0;font-size:15px;color:#34333C;line-height:1.6">
+    <p style="margin:0">Jos olet jo tehnyt korjauksia, n&auml;et uudesta analyysist&auml;, miten tilanne on muuttunut. <a href="https://seosales.fi/nakyvyysanalyysi.html" style="color:#6D4AFF;text-decoration:none;font-weight:600">Tee analyysi uudelleen &rarr;</a></p>
+  </td></tr>
+
+  <tr><td style="padding:28px 40px 4px;font-size:16px;color:#34333C;line-height:1.65">
+    <p style="margin:0 0 8px;font-family:${FONT_HEAD};font-size:19px;font-weight:600;color:#17161C">K&auml;yd&auml;&auml;nk&ouml; tulokset l&auml;pi yhdess&auml;?</p>
+    <p style="margin:0 0 16px">Maksuttomassa keskustelussa katsomme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;. Keskustelu ei sido mihink&auml;&auml;n.</p>
+  </td></tr>
+  <tr><td style="padding:12px 40px 0">
+    <a href="${EMAIL.ctaUrl}" style="display:inline-block;background:#17161C;color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
+  </td></tr>
+
+  ${contactBlock('Voit my&ouml;s vastata suoraan t&auml;h&auml;n viestiin tai soittaa minulle.')}
+
+  ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivulla seosales.fi. T&auml;m&auml; on viimeinen muistutus, eik&auml; muita viestej&auml; l&auml;hetet&auml; ilman lupaasi.')}`);
 }
 
 // Esikatselut vain kehityskäyttöön: tuotannossa ne tekisivät analyysejä ilman käyttörajoitusta.
-app.get(['/api/report-preview', '/api/followup-preview'], async (req, res) => {
+app.get(['/api/report-preview', '/api/followup-preview', '/api/late-followup-preview'], async (req, res) => {
   // Vain paikallisesta koneesta, vaikka NODE_ENV jäisi asettamatta.
   if (process.env.NODE_ENV === 'production' || !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip)) return res.status(404).end();
   const testUrl = req.query.url || 'https://esimerkki.fi';
   try {
     const data = await runAnalysis(testUrl);
-    const html = req.path.endsWith('followup-preview')
+    const html = req.path.endsWith('late-followup-preview')
+      ? buildLateFollowupHTML({ url: data.url, score: data.score, categories: data.categories })
+      : req.path.endsWith('followup-preview')
       ? buildFollowupHTML({ url: data.url, score: data.score, categories: data.categories })
       : buildReportHTML({ url: data.url, score: data.score, summary: data.summary, categories: data.categories, platform: data.platform });
     res.send(html);

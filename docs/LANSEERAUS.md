@@ -51,13 +51,13 @@ Päivitetty 7.10.2026.
 - Lähtevätkö viestit Janin nimissä? Allekirjoitus on nyt "Jani, SEO Sales".
 - Pitääkö pisteytyksen olla tiukempi? (seosales.fi 97/100, useimmat sivustot 75–95)
 - Uutiskirjelista: mihin tilaajat viedään?
-- Muistutus vain kerran (nyt) vai myöhemmin toinen?
+- ~~Muistutus vain kerran vai myöhemmin toinen?~~ Päätetty 22.10.2026: toinen muistutus 3 viikon päästä, jos pisteet alle 80.
 
 ## Ylläpito
 
-- **Muistutuksen peruminen:** jos asiakas varaa keskustelun ennen muistutusta, peru ajastettu viesti Resendin hallintapaneelista (Emails → Scheduled).
+- **Muistutuksen peruminen:** jos asiakas varaa keskustelun ennen muistutusta, peru ajastetut viestit (molemmat muistutukset) Resendin hallintapaneelista (Emails → Scheduled).
 - **Viestien esikatselu ilman Resendiä:** ilman `RESEND_API_KEY`:tä viestit tallennetaan `outbox/`-kansioon.
-- **Kehityksen esikatselut:** `/api/report-preview?url=…` ja `/api/followup-preview?url=…` (pois käytöstä, kun `NODE_ENV=production`).
+- **Kehityksen esikatselut:** `/api/report-preview?url=…` ja `/api/followup-preview?url=…`, `/api/late-followup-preview?url=…` (pois käytöstä, kun `NODE_ENV=production`).
 
 ## Ympäristömuuttujat
 
@@ -70,6 +70,8 @@ Päivitetty 7.10.2026.
 | `NODE_ENV` | kyllä | `production` sulkee esikatselut |
 | `ALLOWED_ORIGINS` | – | Oletus `https://seosales.fi,https://www.seosales.fi` |
 | `FOLLOWUP_DAYS` | – | Muistutuksen viive arkipäivinä, oletus 3 |
+| `LATE_FOLLOWUP_DAYS` | – | Toisen muistutuksen viive kalenteripäivinä (viikonloppu → maanantai), oletus 21, enintään noin 28 |
+| `LATE_FOLLOWUP_BELOW` | – | Toinen muistutus lähtee, jos pisteet ovat tätä pienemmät, oletus 80 |
 | `RATE_MAX` | – | Analyysejä per IP 10 minuutissa, oletus 20 |
 | `DATA_DIR` | – | Liidien ja lokien kansio, oletus sovelluksen kansio |
 | `PORT` | – | Hosting asettaa automaattisesti |

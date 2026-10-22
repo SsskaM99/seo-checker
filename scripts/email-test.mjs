@@ -37,6 +37,8 @@ const app = spawn(process.execPath, ['server.js'], {
     RESEND_API_KEY: 're_testi', RESEND_API_URL: `http://127.0.0.1:${MOCK_PORT}/emails`,
     RESEND_FROM: 'SEO Sales <raportti@seosales.fi>', REPLY_TO: 'jani@seosales.fi',
     FORMSPREE_KEY: '', FOLLOWUP_DAYS: '3',
+    // Raja 101: toinen muistutus lähtee aina, jotta sen voi testata sivuston pisteistä riippumatta.
+    LATE_FOLLOWUP_DAYS: '21', LATE_FOLLOWUP_BELOW: '101',
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -76,8 +78,8 @@ try {
   });
   const j3 = await r3.json();
   check('vastaus ok ja raportti lähetetty', r3.ok && j3.emailSent === true, JSON.stringify(j3));
-  check('kaksi viestiä Resendille', received.length === 2, `saatiin ${received.length}`);
-  const [report, followup] = received.map(x => x.payload);
+  check('kolme viestiä Resendille', received.length === 3, `saatiin ${received.length}`);
+  const [report, followup, late] = received.map(x => x.payload);
   const now = Date.now();
   check('raportti: vastaanottaja siistitty', report?.to === 'testi@esimerkki.fi', report?.to);
   check('raportti: lähettäjä ja vastausosoite', report?.from === 'SEO Sales <raportti@seosales.fi>' && report?.reply_to === 'jani@seosales.fi');
@@ -86,23 +88,31 @@ try {
   check('raportti ei sisällä selaimen syöttämää tekstiä', !report?.html.includes('HUIJAUS'));
   check('raportti käyttää palvelimen pisteitä', report?.html.includes(`>${check1.score}<`));
   const days = (new Date(followup?.scheduled_at) - now) / 86400000;
-  const hel = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Helsinki', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
-    .formatToParts(new Date(followup?.scheduled_at)).map(p => [p.type, p.value]));
+  const helParts = iso => Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Helsinki', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(new Date(iso)).map(p => [p.type, p.value]));
+  const hel = helParts(followup?.scheduled_at);
   check('muistutus 3 arkipäivän päähän', days > 2.3 && days < 5.5, followup?.scheduled_at);
   check('muistutus arkipäivänä klo 9 Suomen aikaa', !['Sat', 'Sun'].includes(hel.weekday) && hel.hour === '09' && hel.minute === '00', followup?.scheduled_at);
   check('muistutuksella sama vastausosoite', followup?.reply_to === 'jani@seosales.fi');
   check('muistutus ei sisällä selaimen syöttämää tekstiä', !followup?.html.includes('HUIJAUS'));
-  check('idempotenssiavaimet asetettu', received.every(x => /^(report|followup)-/.test(x.headers['idempotency-key'] || '')));
+  const lateDays = (new Date(late?.scheduled_at) - now) / 86400000;
+  const lateHel = helParts(late?.scheduled_at);
+  check('toinen muistutus noin 3 viikon päähän', lateDays > 20 && lateDays < 24, late?.scheduled_at);
+  check('toinen muistutus arkipäivänä klo 9 Suomen aikaa', !['Sat', 'Sun'].includes(lateHel.weekday) && lateHel.hour === '09' && lateHel.minute === '00', late?.scheduled_at);
+  check('toinen muistutus: aihe ja pisteet', /^Miten sivuston seosales\.fi näkyvyys on edennyt\?$/.test(late?.subject || '') && late?.html.includes(`${check1.score}/100`), late?.subject);
+  check('toinen muistutus ei sisällä selaimen syöttämää tekstiä', !late?.html.includes('HUIJAUS'));
+  check('idempotenssiavaimet asetettu', received.every(x => /^(report|followup|late-followup)-/.test(x.headers['idempotency-key'] || '')));
   const leads = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'leads.json'), 'utf8'));
   check('liidi tallennettu uutiskirjesuostumuksen kanssa', leads.length === 1 && leads[0].newsletter === true && leads[0].score === check1.score);
 
   fs.mkdirSync(PREVIEW_DIR, { recursive: true });
   fs.writeFileSync(path.join(PREVIEW_DIR, 'raportti.html'), report?.html || '');
   fs.writeFileSync(path.join(PREVIEW_DIR, 'muistutus.html'), followup?.html || '');
+  fs.writeFileSync(path.join(PREVIEW_DIR, 'muistutus2.html'), late?.html || '');
 
   console.log('4. Vanhentunut analyysi');
   const r4 = await post('/api/lead', { email: 'toinen@esimerkki.fi', analysisId: 'olematon', url: 'https://seosales.fi/' });
-  check('analyysi ajetaan uudelleen ja viestit lähtevät', r4.ok && received.length === 4, `status ${r4.status}, viestejä ${received.length}`);
+  check('analyysi ajetaan uudelleen ja viestit lähtevät', r4.ok && received.length === 6, `status ${r4.status}, viestejä ${received.length}`);
 
   console.log('5. Resend-virhe');
   failNext = true;

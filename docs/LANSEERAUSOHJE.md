@@ -19,7 +19,7 @@ Näkyvyysanalyysi on maksuton työkalu, jolla kuka tahansa voi tarkistaa oman ve
 3. **Täydet tulokset on lukittu.** Ne näkyvät sumennettuina, ja niiden päällä on sähköpostikenttä. Puhelinnumero ja uutiskirjeen tilaus ovat vapaaehtoisia.
 4. **Sähköpostin antamisen jälkeen** kaikki 31 tarkistusta korjausohjeineen avautuvat.
 5. **Raportti lähtee heti käyttäjän sähköpostiin.**
-6. **Kolmantena arkipäivänä klo 9 lähtee yksi muistutusviesti.** Siinä on kolme tärkeintä kehityskohdetta ja ehdotus maksuttomasta keskustelusta.
+6. **Kolmantena arkipäivänä klo 9 lähtee yksi muistutusviesti.** Siinä on kolme tärkeintä kehityskohdetta ja ehdotus maksuttomasta keskustelusta. **Jos pisteet jäivät alle 80, toinen muistutus lähtee noin kolmen viikon kuluttua** arkena klo 9: kysymys, onko korjauksiin saatu apua, ja linkki uuteen analyysiin.
 7. **Jani saa jokaisesta liidistä ilmoituksen sähköpostiin** (Formspree). Käyttäjän vastaukset raporttiin ja muistutukseen tulevat Janille.
 
 ### Mitä analyysi tarkistaa

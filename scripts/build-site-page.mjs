@@ -24,10 +24,8 @@ replace('href="/favicon.svg?v=2"', 'href="favicon.svg"');
 replace('src="/seo-sales-logo.svg"', 'src="seo-sales-logo.svg"');
 replace('<meta name="description"', '<link rel="canonical" href="https://seosales.fi/nakyvyysanalyysi.html">\n<meta name="description"');
 // Sivuston sisäiset linkit avautuvat samaan välilehteen.
-replace('href="https://seosales.fi" class="logo" target="_blank" rel="noopener"', 'href="index.html" class="logo"');
-replace('href="https://seosales.fi" class="nav-link" target="_blank" rel="noopener"', 'href="index.html" class="nav-link"');
-html = html.replace(/href="https:\/\/seosales\.fi\/yhteys\.html"( class="[^"]*")? target="_blank" rel="noopener"/g, 'href="yhteys.html"$1');
-html = html.replace(/href="https:\/\/seosales\.fi\/tietosuojaseloste\.html" target="_blank" rel="noopener"/g, 'href="tietosuojaseloste.html"');
+replace('<a href="https://seosales.fi/" class="logo">', '<a href="/" class="logo">');
+html = html.replace(/href="https:\/\/seosales\.fi\/([a-z0-9-]+\.html)"( class="[^"]*")?( target="_blank" rel="noopener")?/g, 'href="$1"$2');
 html = html.replace('<a href="https://seosales.fi" target="_blank" rel="noopener">SEO Sales</a>', '<a href="index.html">SEO Sales</a>');
 // Analyysipalvelun osoite ennen sivun omaa skriptiä.
 const firstScript = html.search(/\r?\n<script>\r?\n/);

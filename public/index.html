@@ -18,7 +18,7 @@
   --line:#E8E8EC;--line-2:#D8D8DE;
   --violet:#6D4AFF;--violet-dark:#5232E0;--violet-bright:#A08CFF;
   --turq:#12B5AA;--turq-dark:#0C847C;--turq-bright:#25D9C6;
-  --charcoal:#17171D;--charcoal-2:#1B1C23;
+  --charcoal:#17171D;--charcoal-2:#1B1C23;--charcoal-3:#100F14;
   --pass:#27AE60;--warn:#E67E22;--fail:#C0392B;
   /* Tekstinä ja pienissä merkeissä käytettävät tummemmat sävyt (kontrasti vähintään 4.5:1) */
   --pass-text:#1B7A43;--warn-text:#A35200;
@@ -36,19 +36,111 @@ a{color:var(--navy);text-decoration:none}
 ::selection{background:rgba(108,77,246,.18)}
 .wrap{max-width:1200px;margin:0 auto;padding:0 48px}
 
-/* Header */
-header{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.92);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
-header .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
-.logo{display:inline-flex;align-items:center}
-.logo img{height:22px;width:auto}
-.nav-right{display:flex;align-items:center;gap:16px}
-.nav-link{font-family:var(--sans);font-size:14px;font-weight:500;color:var(--text);transition:color .2s}
-.nav-link:hover{color:var(--navy)}
-.nav-cta{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;border:1px solid var(--line-2);border-radius:999px;padding:9px 18px;color:var(--navy);transition:border-color .25s,background .25s,color .25s}
-.nav-cta:hover{border-color:var(--navy);background:var(--navy);color:#fff}
+/* Yläpalkki: kopio seosales.fi:n styles.css:stä (tumman heron versio). Kun sivuston yläpalkki muuttuu, päivitä myös tämä. */
+header{position:sticky;top:0;z-index:60;background:rgba(255,255,255,0);backdrop-filter:blur(0px);transition:background .38s ease,backdrop-filter .38s ease,box-shadow .38s ease,border-color .38s ease;border-bottom:1px solid transparent}
+header.stuck{background:rgba(255,255,255,.74);backdrop-filter:blur(22px) saturate(1.7);border-bottom-color:transparent;box-shadow:0 1px 0 rgba(23,22,28,.05),0 10px 34px -26px rgba(23,22,28,.5)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:72px;gap:24px;transition:height .38s cubic-bezier(.2,.7,.2,1)}
+header.stuck .nav{height:56px}
+.logo{display:inline-flex;align-items:baseline;gap:8px;font-family:var(--display);font-weight:600;color:var(--navy);font-size:20px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;line-height:1}
+.logo img{height:30px;width:auto;display:block;transition:height .38s cubic-bezier(.2,.7,.2,1),filter .3s,opacity .2s}
+header.stuck .logo img{height:25px}
+.logo:hover img{opacity:.85}
+/* Logon merkissä on violetti #7C6DC4: pelkkä invert kääntäisi sen oliivinvihreäksi.
+   hue-rotate palauttaa sen vaaleaksi violetiksi (#8E7FD6), teksti muuttuu valkoiseksi. */
+.dark-hero header .logo img{filter:invert(1) hue-rotate(180deg)}
+.nav-links{display:flex;gap:4px;align-items:center}
+.nav-links>a,.dropdown>button{color:var(--text);font-size:14.5px;font-family:var(--sans);font-weight:700;background:none;border:0;cursor:pointer;transition:color .2s,background .25s ease;padding:9px 15px;border-radius:999px;white-space:nowrap}
+.nav-links>a:not(.nav-cta):hover,.dropdown>button:hover{background:rgba(23,22,28,.055)}
+.nav-links>a:hover,.dropdown>button:hover,.nav-links>a.active,.dropdown.active>button{color:var(--navy)}
+.nav-cta{font-family:var(--mono);font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;border:1px solid var(--line-2)!important;border-radius:999px;padding:11px 20px!important;margin-left:10px;color:var(--navy)!important;transition:border-color .25s,background .25s,color .25s,transform .3s cubic-bezier(.2,.7,.2,1),box-shadow .3s!important}
+.nav-cta:hover{border-color:var(--navy)!important;background:var(--navy)!important;color:#fff!important;transform:translateY(-1px);box-shadow:0 10px 22px -14px rgba(23,22,28,.7)}
 
-/* Hero */
-.hero{background:var(--charcoal);padding:72px 0 56px;text-align:center}
+/* Dropdown */
+.dropdown{position:relative}
+.dropdown>button{display:inline-flex;align-items:center;gap:6px}
+.dropdown>button .caret{width:8px;height:8px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin-top:-3px;transition:transform .2s}
+.dropdown.open>button .caret{transform:rotate(-135deg);margin-top:2px}
+.dropmenu{position:absolute;top:calc(100% + 8px);left:0;transform:translateY(8px) scale(.985);min-width:280px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-md);padding:8px;box-shadow:0 24px 60px -24px rgba(23,22,28,.28),0 2px 8px rgba(23,22,28,.04);opacity:0;visibility:hidden;transition:opacity .26s cubic-bezier(.2,.7,.2,1),transform .26s cubic-bezier(.2,.7,.2,1),visibility .26s}
+.dropmenu::before{content:"";position:absolute;left:0;right:0;top:-16px;height:16px}
+.dropdown:hover .dropmenu,.dropdown.open .dropmenu{opacity:1;visibility:visible;transform:translateY(0) scale(1)}
+.dropmenu a{display:block;padding:11px 14px;border-radius:10px;color:var(--navy);font-size:15px;transition:background .18s,padding-left .18s}
+.dropmenu a:hover{padding-left:18px}
+.dropmenu a small{display:block;color:var(--muted);font-size:13px;font-weight:400;margin-top:2px}
+.dropmenu a:hover,.dropmenu a.active{background:var(--paper)}
+.menu-btn{display:none;background:none;border:none;font-size:24px;color:var(--navy);cursor:pointer;line-height:1}
+/* Light header text while it floats over the dark hero — sama lasityyli myös vieritettynä,
+   vain matalampana. Vieritettynä alpha on korkeampi, koska takana on vaalea sisältö. */
+.dark-hero header{background:rgba(23,23,29,.38);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border-bottom-color:rgba(255,255,255,.09)}
+.dark-hero header.stuck{background:rgba(23,23,29,.84);backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);border-bottom-color:rgba(255,255,255,.08);box-shadow:0 14px 40px -30px rgba(0,0,0,.8)}
+@supports not (backdrop-filter: blur(2px)){
+  .dark-hero header{background:rgba(23,23,29,.72)}
+  .dark-hero header.stuck{background:rgba(23,23,29,.95)}
+}
+.dark-hero header .logo{color:#F5F3EE}
+.dark-hero header .nav-links>a:hover,.dark-hero header .dropdown>button:hover{background:rgba(255,255,255,.09)}
+.dark-hero header .nav-links>a,.dark-hero header .dropdown>button{color:#C6C2D1}
+.dark-hero header .nav-links>a:hover,.dark-hero header .dropdown>button:hover,.dark-hero header .nav-links>a.active{color:#fff}
+.dark-hero header .menu-btn{color:#F5F3EE}
+.dark-hero header:not(.stuck) .nav-cta:hover{background:#F5F3EE!important;color:#17161C!important;border-color:#F5F3EE!important}
+.nav-links>a:not(.nav-cta){position:relative}
+.nav-links>a:not(.nav-cta)::after{content:"";position:absolute;left:15px;right:15px;bottom:4px;height:1.5px;background:var(--turq);transform:scaleX(0);transform-origin:left;transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+.nav-links>a.active::after{transform:scaleX(1)}
+@media(max-width:1200px){
+  .menu-btn{display:inline-flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;width:42px;height:42px}
+  .menu-btn span{display:block;width:22px;height:2px;background:currentColor;border-radius:2px;transition:transform .3s cubic-bezier(.2,.7,.2,1),opacity .2s}
+  body.menu-open .menu-btn span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+  body.menu-open .menu-btn span:nth-child(2){opacity:0}
+  body.menu-open .menu-btn span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+  .nav-links{display:flex;position:fixed;top:78px;left:0;right:0;bottom:0;background:var(--charcoal-3);flex-direction:column;align-items:flex-start;gap:0;padding:36px 48px;z-index:55;overflow-y:auto;visibility:hidden;opacity:0;transform:translateY(-8px);transition:opacity .3s,transform .3s,visibility .3s}
+  .nav-links.open{visibility:visible;opacity:1;transform:none}
+  .nav-links>a{padding:12px 0;width:100%;text-align:left;font-family:var(--display);font-size:26px;font-weight:500;color:#F5F3EE;letter-spacing:-.01em}
+  .nav-links>a:hover{color:var(--turq-bright)}
+  .nav-links>a:not(.nav-cta)::after{display:none}
+  .nav-cta{margin:26px 0 0;text-align:center;width:auto;font-size:12px!important;font-family:var(--mono);border-color:rgba(255,255,255,.3)!important;color:#F5F3EE!important;padding:14px 28px!important}
+  .nav-links>a.nav-cta{text-align:center;border-radius:var(--r-sm);margin-left:0}
+  .nav-cta:hover{background:#F5F3EE!important;color:var(--charcoal-3)!important;border-color:#F5F3EE!important}
+  .dropdown{width:100%}
+  .dropdown>button{font-family:var(--display);font-size:26px;font-weight:500;color:#F5F3EE;padding:12px 0;letter-spacing:-.01em}
+  .dropdown>button:hover{color:var(--turq-bright)}
+  .dropmenu{position:static;transform:none;box-shadow:none;border:0;background:transparent;min-width:0;padding:2px 0 10px 20px;display:none;opacity:1;visibility:visible}
+  .dropdown.open .dropmenu,.dropdown.active .dropmenu{display:block;transform:none}
+  .dropmenu a{color:#C6C2D1;font-size:17px;padding:9px 0;border-radius:0}
+  .dropmenu a:hover,.dropmenu a.active{background:transparent;color:var(--turq-bright)}
+  .nav-links.open>a,.nav-links.open .dropdown{animation:navIn .5s cubic-bezier(.2,.7,.2,1) both}
+  .nav-links.open>*:nth-child(1){animation-delay:.05s}
+  .nav-links.open>*:nth-child(2){animation-delay:.11s}
+  .nav-links.open>*:nth-child(3){animation-delay:.17s}
+  .nav-links.open>*:nth-child(4){animation-delay:.23s}
+  .nav-links.open>*:nth-child(5){animation-delay:.29s}
+  body.menu-open{overflow:hidden}
+  body.menu-open header,body.menu-open.dark-hero header:not(.stuck){background:var(--charcoal-3);border-bottom-color:rgba(255,255,255,.08);backdrop-filter:none}
+  body.menu-open header .logo img{filter:invert(1) hue-rotate(180deg)}
+  body.menu-open .menu-btn{color:#F5F3EE}
+}
+@keyframes navIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.nav-links.open>a,.nav-links.open .dropdown{animation:none}}
+@media(min-width:1201px){
+  header .wrap.nav{max-width:none;padding-left:36px;padding-right:36px}
+  .nav{justify-content:flex-start}
+  header{--logo-w:158px}
+  header.stuck{--logo-w:132px}
+  .nav-links{flex:1;margin-left:max(28px,calc((100% - 1128px) / 2 - 27px - var(--logo-w)))}
+  .nav-links>a[href$="yhteys.html"]{margin-left:auto}
+}
+/* Näkyvyysanalyysi-painike: kompakti, kehys liukuu violetista turkoosiin */
+.nav-links>a.nav-cta--analyysi{position:relative;font-family:var(--sans);font-size:14px;font-weight:700;letter-spacing:0;text-transform:none;padding:8px 18px!important;margin-left:6px;border-color:transparent!important;color:var(--navy)!important}
+.nav-links>a.nav-cta--analyysi::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:linear-gradient(90deg,var(--violet),var(--turq),var(--violet));background-size:200% 100%;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:navCtaGlow 6s linear infinite;pointer-events:none}
+.nav-links>a.nav-cta--analyysi:hover{background:rgba(109,74,255,.07)!important;color:var(--navy)!important;border-color:transparent!important;transform:none;box-shadow:none}
+.dark-hero header .nav-links>a.nav-cta--analyysi{color:#F5F3EE!important}
+.dark-hero header .nav-links>a.nav-cta--analyysi::before{background-image:linear-gradient(90deg,var(--violet-bright),var(--turq-bright),var(--violet-bright))}
+.dark-hero header .nav-links>a.nav-cta--analyysi:hover{background:rgba(255,255,255,.08)!important;color:#fff!important}
+@keyframes navCtaGlow{to{background-position:200% 0}}
+@media(prefers-reduced-motion:reduce){.nav-links>a.nav-cta--analyysi::before{animation:none}}
+@media(max-width:1200px){.nav-links>a.nav-cta--analyysi{color:#F5F3EE!important;font-size:16px;padding:12px 24px!important;margin:20px 0 0}.nav-links>a.nav-cta--analyysi::before{background-image:linear-gradient(90deg,var(--violet-bright),var(--turq-bright),var(--violet-bright))}.nav-links>a.nav-cta--analyysi:hover{background:rgba(255,255,255,.08)!important;color:#fff!important}}
+@media(max-width:860px){header .wrap.nav{padding:0 28px}}
+
+/* Hero: liukuu läpikuultavan yläpalkin alle kuten sivuston muillakin sivuilla */
+.hero{background:var(--charcoal);margin-top:-72px;padding:144px 0 56px;text-align:center}
 .hero h1{color:#fff;font-size:clamp(28px,5vw,46px);margin-bottom:14px;line-height:1.08}
 .hero h1 em{color:var(--violet-bright)}
 .hero p{color:var(--text-on-dark);font-size:17px;max-width:580px;margin:0 auto;line-height:1.65}
@@ -271,12 +363,7 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
   .wrap{padding:0 20px}
   .input-box{flex-direction:column}
   .input-box input[type="text"],.btn-primary{width:100%}
-  .hero{padding:52px 0 44px}
-  header .wrap{height:56px}
-  .logo img{height:18px}
-  .nav-right{gap:10px}
-  .nav-link{display:none}
-  .nav-cta{white-space:nowrap;font-size:10px;letter-spacing:.04em;padding:8px 12px}
+  .hero{padding:124px 0 44px}
   .cat-grid{grid-template-columns:repeat(2,1fr);gap:10px}
   .intro-grid{grid-template-columns:1fr;gap:10px}
   .gate-card{padding:28px 20px}
@@ -284,17 +371,31 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
 }
 </style>
 </head>
-<body>
+<body class="dark-hero">
 
-<header>
-  <div class="wrap">
-    <a href="https://seosales.fi" class="logo" target="_blank" rel="noopener">
-      <img src="/seo-sales-logo.svg" alt="SEO Sales" width="140" height="22">
-    </a>
-    <div class="nav-right">
-      <a href="https://seosales.fi" class="nav-link" target="_blank" rel="noopener">seosales.fi</a>
-      <a href="https://seosales.fi/yhteys.html" class="nav-cta" target="_blank" rel="noopener">Varaa maksuton keskustelu</a>
-    </div>
+<!-- Sama yläpalkki kuin seosales.fi:n sivuilla. build-site-page.mjs muuttaa linkit suhteellisiksi. -->
+<header id="hdr">
+  <div class="wrap nav">
+    <a href="https://seosales.fi/" class="logo"><img src="/seo-sales-logo.svg" alt="SEO Sales"></a>
+    <nav class="nav-links">
+      <div class="dropdown">
+        <button type="button" aria-haspopup="true">Palvelut <span class="caret" aria-hidden="true"></span></button>
+        <div class="dropmenu">
+          <a href="https://seosales.fi/b2b-myynti.html">B2B- ja B2G-myynti</a>
+          <a href="https://seosales.fi/digimarkkinointi.html">Digimarkkinointi</a>
+          <a href="https://seosales.fi/seo-ja-geo.html">SEO &amp; GEO</a>
+          <a href="https://seosales.fi/kansainvalistyminen.html">Kansainvälistyminen</a>
+          <a href="https://seosales.fi/koulutukset.html">Koulutukset</a>
+        </div>
+      </div>
+      <a href="https://seosales.fi/miksi-seo-sales.html">Miksi SEO Sales</a>
+      <a href="https://seosales.fi/yhteistyot.html">Yhteistyöt</a>
+      <a href="https://seosales.fi/ajankohtaista.html">Ajankohtaista</a>
+      <a href="https://seosales.fi/ukk.html">UKK</a>
+      <a href="https://seosales.fi/yhteys.html">Ota yhteyttä</a>
+      <a href="https://seosales.fi/nakyvyysanalyysi.html" class="nav-cta nav-cta--analyysi" aria-current="page">Näkyvyysanalyysi</a>
+    </nav>
+    <button class="menu-btn" aria-label="Valikko" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
 </header>
 
@@ -372,13 +473,17 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
         <label for="phone-input" class="sr-only">Puhelinnumero (vapaaehtoinen)</label>
         <input type="tel" id="phone-input" autocomplete="tel" placeholder="puhelinnumero (vapaaehtoinen)">
         <div class="checkbox-row">
+          <input type="checkbox" id="own-email-check" required>
+          <label for="own-email-check">Vahvistan, että sähköpostiosoite on oma tai edustamani yrityksen osoite.</label>
+        </div>
+        <div class="checkbox-row">
           <input type="checkbox" id="newsletter-check">
           <label for="newsletter-check">Suostun vastaanottamaan SEO Salesin uutiskirjeen: ajankohtaisia näkemyksiä näkyvyydestä, myynnistä ja kasvusta. Suostumuksen voi perua milloin tahansa.</label>
         </div>
         <p class="gate-error" id="gate-error" role="alert"></p>
         <button type="submit" class="btn-gate" id="unlock-btn">Lähetä raportti sähköpostiin</button>
       </form>
-      <p class="gate-note">Käytämme sähköpostiosoitetta raportin ja yhden muistutusviestin lähettämiseen. Uutiskirjettä lähetämme vain, jos annatte siihen suostumuksen. <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p>
+      <p class="gate-note">Käytämme sähköpostiosoitetta raportin ja enintään kahden muistutusviestin lähettämiseen. Uutiskirjettä lähetämme vain, jos annatte siihen suostumuksen. <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p>
     </div>
   </div>
 </div>
@@ -401,10 +506,35 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
 </main>
 
 <footer>
-  <div class="wrap"><p><a href="https://seosales.fi" target="_blank" rel="noopener">SEO Sales</a> — näkyvyydestä kasvuun</p></div>
+  <div class="wrap"><p>© 2026 <a href="https://seosales.fi" target="_blank" rel="noopener">SEO Sales</a> · <a href="https://seosales.fi/tietosuojaseloste.html" target="_blank" rel="noopener">Tietosuojaseloste</a></p></div>
 </footer>
 
 <script>
+// Yläpalkki toimii kuten seosales.fi:n script.js:ssä: tiivistyy vieritettäessä, mobiilivalikko ja Palvelut-valikko.
+(() => {
+  const hdr = document.getElementById('hdr');
+  const onScroll = () => hdr.classList.toggle('stuck', window.scrollY > 12);
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  const menuBtn = document.querySelector('.menu-btn');
+  const navLinks = document.querySelector('.nav-links');
+  const setMenu = open => {
+    navLinks.classList.toggle('open', open);
+    document.body.classList.toggle('menu-open', open);
+    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  menuBtn.addEventListener('click', () => setMenu(!navLinks.classList.contains('open')));
+  navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+
+  document.querySelectorAll('.dropdown > button').forEach(btn => {
+    btn.addEventListener('click', e => { e.preventDefault(); btn.parentElement.classList.toggle('open'); });
+  });
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.dropdown.open').forEach(dd => { if (!dd.contains(e.target)) dd.classList.remove('open'); });
+  });
+})();
+
 // Kategoriat: kysymys kertoo hyödyn, info kertoo mitä tarkistetaan ja miksi.
 const CATS = {
   seo: {
@@ -525,6 +655,11 @@ function showError(code, message) {
     (ERROR_CTA.includes(code) ? '<a href="https://seosales.fi/yhteys.html" class="error-cta" target="_blank" rel="noopener">Varaa maksuton keskustelu</a>' : '');
   show('error');
 }
+
+// Pakollinen vahvistus: raporttia ei voi tilata kenen tahansa osoitteeseen.
+const ownEmailMsg = () => $('own-email-check').setCustomValidity($('own-email-check').checked ? '' : 'Vahvistakaa, että sähköpostiosoite on teidän oma tai teidän yrityksen osoite.');
+ownEmailMsg();
+$('own-email-check').addEventListener('change', ownEmailMsg);
 
 $('email-form').addEventListener('submit', async (e) => {
   e.preventDefault();
