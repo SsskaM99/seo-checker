@@ -622,12 +622,12 @@ function buildLateFollowupHTML({ url, score, categories }) {
   <tr><td style="padding:32px 40px 0">${eyebrow(`N&auml;kyvyysanalyysi &middot; ${esc(host)}`)}</td></tr>
   <tr><td style="padding:24px 40px 8px;font-size:16px;color:#34333C;line-height:1.7">
     <p style="${p}">Hei,</p>
-    <p style="${p}">k&auml;vit muutama viikko sitten l&auml;pi sivuston <strong style="color:#17161C">${esc(host)}</strong> n&auml;kyvyyden. Kokonaispisteet olivat silloin <strong style="color:${scoreTextHex(score)}">${score}/100</strong>${topText ? `, ja eniten tulokseen vaikuttivat ${topText}` : ''}.</p>
+    <p style="${p}">k&auml;vit muutama viikko sitten l&auml;pi sivuston <strong style="color:#17161C">${esc(host)}</strong> n&auml;kyvyyden. Kokonaispisteet olivat silloin <strong style="color:#6D4AFF">${score}/100</strong>${topText ? `, ja eniten tulokseen vaikuttivat ${topText}` : ''}.</p>
     <p style="${p}">Oletko saanut korjauksiin apua? Moni t&auml;rkeimmist&auml; kohdista on nopea korjata, ja ne auttavat oikeita asiakkaita l&ouml;yt&auml;m&auml;&auml;n teid&auml;t sek&auml; Googlesta ett&auml; teko&auml;lyhauista.</p>
     <p style="margin:0 0 22px">Jos olet jo tehnyt korjauksia, n&auml;et uudesta analyysist&auml;, miten tilanne on muuttunut:</p>
   </td></tr>
   <tr><td style="padding:0 40px 30px">
-    <a href="https://seosales.fi/nakyvyysanalyysi.html" style="display:inline-block;background:#6D4AFF;color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;border-radius:8px;text-decoration:none">Tee analyysi uudelleen</a>
+    <a href="https://seosales.fi/nakyvyysanalyysi.html" style="display:inline-block;background:#17161C;color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;border-radius:8px;text-decoration:none">Tee analyysi uudelleen</a>
   </td></tr>
   <tr><td style="padding:0 40px;font-size:16px;color:#34333C;line-height:1.7">
     <p style="margin:0">Jos haluat k&auml;yd&auml; tulokset l&auml;pi yhdess&auml;, <a href="${EMAIL.ctaUrl}" style="color:#17161C;text-decoration:underline;font-weight:600">varaa maksuton keskustelu</a> tai vastaa suoraan t&auml;h&auml;n viestiin. Katsomme silloin, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;.</p>
