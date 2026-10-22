@@ -345,6 +345,13 @@ header.stuck .logo img{height:25px}
   transition:background .2s,transform .2s,box-shadow .3s;text-decoration:none;
 }
 .btn-cta:hover{transform:translateY(-1px);box-shadow:0 10px 22px -14px rgba(23,22,28,.7)}
+/* Keskustelupainike ensisijaisena, arviolinkit kevyempinä sen vieressä */
+.cta-actions{display:flex;align-items:center;justify-content:center;gap:20px 36px;flex-wrap:wrap}
+.cta-reviews{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;max-width:380px;text-align:left}
+.cta-reviews p{flex-basis:100%;font-size:13px;color:var(--text-on-dark);line-height:1.5;margin:0}
+.cta-reviews a{font-size:13px;font-weight:600;color:#F5F3EE;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:7px 14px;transition:border-color .2s,background .2s}
+.cta-reviews a:hover{border-color:var(--turq-bright);background:rgba(255,255,255,.06)}
+@media(max-width:640px){.cta-reviews{text-align:center}}
 
 /* Footer */
 footer{padding:28px 0;text-align:center;border-top:1px solid var(--line)}
@@ -499,9 +506,16 @@ footer a{color:var(--turq-dark);text-decoration:underline;text-underline-offset:
     <h2>Käydään yhdessä läpi, miten <em>näkyvyydestä tulee myyntiä</em></h2>
     <div class="cta-body">
       <div class="cta-summary" id="cta-summary"></div>
-      <p>Analyysi näyttää lähtötilanteen. Keskustelussa katsomme, mitkä korjaukset tuovat teidän yritykselle eniten asiakkaita ja missä järjestyksessä ne kannattaa tehdä.</p>
+      <p>Analyysi näyttää lähtötilanteen. Keskustelussa katsomme, mitkä korjaukset tuovat teidän yritykselle eniten asiakkaita ja missä järjestyksessä ne kannattaa tehdä. Voimme myös hoitaa korjaukset puolestanne.</p>
     </div>
-    <a href="https://seosales.fi/yhteys.html" class="btn-cta" target="_blank" rel="noopener">Varaa maksuton keskustelu</a>
+    <div class="cta-actions">
+      <a href="https://seosales.fi/yhteys.html" class="btn-cta" target="_blank" rel="noopener">Varaa maksuton keskustelu</a>
+      <div class="cta-reviews">
+        <p>Oliko analyysistä hyötyä? Lyhyt arvio auttaa muita löytämään meidät.</p>
+        <a href="https://www.trustpilot.com/evaluate/seosales.fi" target="_blank" rel="noopener">Arvioi Trustpilotissa</a>
+        <a href="https://maps.app.goo.gl/SddN6FqofjdUd6Ny7" target="_blank" rel="noopener">Arvioi Googlessa</a>
+      </div>
+    </div>
   </div>
 </section>
 

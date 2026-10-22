@@ -188,9 +188,6 @@ const EMAIL = {
   ctaUrl: 'https://seosales.fi/yhteys.html',
   privacyUrl: 'https://seosales.fi/tietosuojaseloste.html',
   contact: { name: 'Jani Lammi', phone: '+358 45 131 4343', tel: '+358451314343', email: 'janio.lammi@gmail.com' },
-  // Arvostelulinkit viestien loppuun. Google-painike näkyy, kun tähän lisätään yritysprofiilin
-  // virallinen arvostelulinkki (Google Business Profile → Pyydä arvosteluja, muotoa g.page/r/…/review).
-  reviews: { trustpilot: 'https://www.trustpilot.com/evaluate/seosales.fi', google: '' },
 };
 // Brändifontit näkyvät esimerkiksi Apple Mailissa; Gmail ja Outlook käyttävät varafontteja.
 const FONT_BODY = "Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -234,19 +231,6 @@ function contactBlock(intro) {
         <div style="font-size:14px;margin-top:6px"><a href="tel:${c.tel}" style="color:#17161C;text-decoration:none">${c.phone}</a><br><a href="mailto:${c.email}" style="color:#0C847C;text-decoration:underline">${c.email}</a></div>
       </td>
     </tr></table>
-  </td></tr>`;
-}
-
-function reviewBlock() {
-  const r = EMAIL.reviews;
-  const links = [r.trustpilot && ['Trustpilotissa', r.trustpilot], r.google && ['Googlessa', r.google]].filter(Boolean);
-  if (!links.length) return '';
-  const linkHtml = links.map(([name, url]) => `<a href="${url}" style="display:inline-block;margin:6px 6px 0;padding:10px 18px;border:1px solid #D8D8DE;border-radius:999px;color:#17161C;font-size:13px;font-weight:600;text-decoration:none">Arvioi ${name} &rarr;</a>`).join('');
-  return `
-  <tr><td style="padding:28px 40px;text-align:center;background:#F5F5F7">
-    <div style="font-family:${FONT_HEAD};font-size:17px;font-weight:600;color:#17161C;margin-bottom:6px">Oliko analyysist&auml; hy&ouml;ty&auml;?</div>
-    <div style="font-size:14px;color:#34333C;line-height:1.6;margin:0 auto 6px;max-width:420px">Lyhyt arvio auttaa muita yrityksi&auml; l&ouml;yt&auml;m&auml;&auml;n meid&auml;t. Kiitos, jos ehdit!</div>
-    ${linkHtml}
   </td></tr>`;
 }
 
@@ -382,12 +366,10 @@ function buildReportHTML({ url, score, summary, categories, platform }) {
   <tr><td style="padding:36px 40px;text-align:center;background:#17161C">
     <div style="font-family:${FONT_HEAD};font-size:22px;font-weight:700;color:#FFFFFF;margin-bottom:8px">Tarvitsetko <span style="color:#25D9C6">apua</span> n&auml;iden kanssa?</div>
     <div style="font-size:15px;color:#C6C2D1;line-height:1.6;margin:0 auto 22px;max-width:440px">
-      K&auml;ymme tulokset l&auml;pi maksuttomassa keskustelussa ja kerromme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;.
+      K&auml;ymme tulokset l&auml;pi maksuttomassa keskustelussa ja kerromme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;. Voimme my&ouml;s hoitaa korjaukset puolestanne, jolloin teid&auml;n aikanne j&auml;&auml; omaan liiketoimintaan.
     </div>
     <a href="${EMAIL.ctaUrl}" style="display:inline-block;background:#FFFFFF;color:#17161C;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 32px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
   </td></tr>
-
-  ${reviewBlock()}
 
   ${emailFooter('Sait t&auml;m&auml;n raportin, koska pyysit sit&auml; n&auml;kyvyysanalyysiss&auml; sivulla seosales.fi.')}`);
 }
@@ -558,7 +540,7 @@ const FOLLOWUP_FAQ = [
   ['Auttavatko samat korjaukset tekoälyhauissa?',
    'Suurelta osin kyllä. ChatGPT, Claude, Gemini, Perplexity ja muut tekoälyhaut hyödyntävät samoja asioita kuin Google: selkeää sisältöä, rakenteellista dataa ja ajantasaisia yritystietoja. Kun sivu vastaa suoraan asiakkaiden kysymyksiin, se on hyvä lähde sekä hakukoneille että tekoälylle.'],
   ['Saako korjauksiin apua?',
-   'Saa. Käymme tulokset kanssasi läpi maksuttomassa keskustelussa ja kerromme, mitkä korjaukset kannattaa tehdä ensin ja mitkä onnistuvat omin voimin. Voimme myös toteuttaa korjaukset tai tehdä ne yhdessä sivuston kehittäjän kanssa.',
+   'Saa, ja se on usein nopein tapa saada tuloksia. Maksuttomassa keskustelussa käymme tulokset läpi ja teemme selkeän suunnitelman: mitkä korjaukset tuovat eniten asiakkaita, missä järjestyksessä ne kannattaa tehdä ja mitkä onnistuvat omin voimin. Halutessasi hoidamme korjaukset puolestasi tai yhdessä sivuston kehittäjän kanssa, jolloin oma aikasi jää liiketoiminnan pyörittämiseen.',
    true],
 ];
 
@@ -602,15 +584,13 @@ function buildFollowupHTML({ url, score, categories }) {
 
   <tr><td style="padding:28px 40px 4px;font-size:16px;color:#34333C;line-height:1.65">
     <p style="margin:0 0 8px;font-family:${FONT_HEAD};font-size:19px;font-weight:600;color:#17161C">Tarvitsetko apua n&auml;iden kanssa?</p>
-    <p style="margin:0 0 16px">K&auml;ymme tulokset l&auml;pi maksuttomassa keskustelussa ja kerromme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;. Keskustelu ei sido mihink&auml;&auml;n.</p>
+    <p style="margin:0 0 16px">K&auml;ymme tulokset l&auml;pi maksuttomassa keskustelussa ja kerromme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;. Voimme my&ouml;s hoitaa korjaukset puolestanne. Keskustelu ei sido mihink&auml;&auml;n.</p>
   </td></tr>
   <tr><td style="padding:12px 40px 0">
     <a href="${EMAIL.ctaUrl}" style="display:inline-block;background:#17161C;color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
   </td></tr>
 
   ${contactBlock('Voit my&ouml;s vastata suoraan t&auml;h&auml;n viestiin tai soittaa minulle.')}
-
-  ${reviewBlock()}
 
   ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivulla seosales.fi. Muistutuksia l&auml;hetet&auml;&auml;n enint&auml;&auml;n kaksi, eik&auml; muita viestej&auml; l&auml;hetet&auml; ilman lupaasi.')}`);
 }
