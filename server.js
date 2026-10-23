@@ -3,7 +3,7 @@ const cheerio = require('cheerio');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { fetchPage, fetchSiteFiles, FetchError } = require('./fetcher');
+const { fetchPage, fetchSiteFiles, fetchMediaSizes, FetchError } = require('./fetcher');
 
 // Paikallisesti asetukset luetaan .env-tiedostosta; pilvessä ne annetaan ympäristömuuttujina.
 try { process.loadEnvFile(path.join(__dirname, '.env')); } catch {}
@@ -107,8 +107,17 @@ function cacheAnalysis(results) {
 
 async function runAnalysis(input) {
   const page = await fetchPage(input);
-  const siteFiles = await fetchSiteFiles(page.finalUrl);
-  return analyze(page.html, page.finalUrl, { responseTimeMs: page.responseTimeMs, headers: page.headers, htmlBytes: page.htmlBytes, contentEncoding: page.contentEncoding, ...siteFiles });
+  const [siteFiles, mediaSizes] = await Promise.all([fetchSiteFiles(page.finalUrl), fetchMediaSizes(mediaUrls(page.html, page.finalUrl))]);
+  return analyze(page.html, page.finalUrl, { responseTimeMs: page.responseTimeMs, headers: page.headers, htmlBytes: page.htmlBytes, contentEncoding: page.contentEncoding, mediaSizes, ...siteFiles });
+}
+
+// Sivun kuvat ja videot kokotarkistusta varten: enintään 15 kuvaa ja 3 videota.
+function mediaUrls(html, baseUrl) {
+  const $ = cheerio.load(html);
+  const abs = s => { try { return new URL(s, baseUrl).href; } catch { return null; } };
+  const imgs = $('img').map((_, el) => el.attribs.src || el.attribs['data-src']).get().filter(s => s && !s.startsWith('data:')).map(abs);
+  const videos = $('video[src], video source[src]').map((_, el) => el.attribs.src).get().map(abs);
+  return [...new Set([...imgs.slice(0, 15), ...videos.slice(0, 3)].filter(Boolean))];
 }
 
 app.post('/api/check', async (req, res) => {
@@ -234,11 +243,12 @@ function contactBlock(intro) {
   </td></tr>`;
 }
 
-function emailFooter(reason) {
+// Alatunniste uutiskirjeen mallin mukaan: syy viestiin ja peruutuslinkki samalla värillä kuin muu teksti.
+function emailFooter(reason, unsubscribeUrl) {
   return `
   <tr><td style="padding:20px 40px 24px;border-top:1px solid #E8E8EC;text-align:center;font-size:12px;color:#6B6A73;line-height:1.6">
     <strong style="color:#34333C">SEO Sales</strong> &middot; Y-tunnus 3625027-1 &middot; <a href="https://seosales.fi" style="color:#0C847C;text-decoration:underline">seosales.fi</a> &middot; <a href="${EMAIL.privacyUrl}" style="color:#0C847C;text-decoration:underline">Tietosuojaseloste</a><br>
-    ${reason}
+    ${reason}${unsubscribeUrl ? ` Jos et halua jatkossa kuulla meist&auml;, voit <a href="${unsubscribeUrl}" style="color:#6B6A73;text-decoration:underline">peruuttaa tilauksen</a>.` : ''}
   </td></tr>`;
 }
 
@@ -274,7 +284,7 @@ function numberedIssue(ch, i, withTip) {
   </td></tr>`;
 }
 
-function buildReportHTML({ url, score, summary, categories, platform }) {
+function buildReportHTML({ url, score, summary, categories, platform, unsubscribeUrl }) {
   const date = new Date().toLocaleDateString('fi-FI');
   const host = hostOf(url);
   const cats = Array.isArray(categories) ? categories : [];
@@ -371,15 +381,17 @@ function buildReportHTML({ url, score, summary, categories, platform }) {
     <a href="${EMAIL.ctaUrl}" style="display:inline-block;background:#FFFFFF;color:#17161C;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 32px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
   </td></tr>
 
-  ${emailFooter('Sait t&auml;m&auml;n raportin, koska pyysit sit&auml; n&auml;kyvyysanalyysiss&auml; sivulla seosales.fi.')}`);
+  ${emailFooter('Saat t&auml;m&auml;n viestin, koska pyysit n&auml;kyvyysanalyysin raportin sivustollamme.', unsubscribeUrl)}`);
 }
 
 // Sähköpostin lähetys Resendillä. Ilman avainta viestit tallennetaan outbox-kansioon esikatseltaviksi.
-async function sendEmail({ to, subject, html, scheduledAt, idempotencyKey, tag }) {
+async function sendEmail({ to, subject, html, scheduledAt, idempotencyKey, tag, unsubscribeUrl }) {
   const payload = { from: CONFIG.from, to, subject, html };
   if (CONFIG.replyTo) payload.reply_to = CONFIG.replyTo;
   if (scheduledAt) payload.scheduled_at = scheduledAt;
   if (tag) payload.tags = [{ name: 'type', value: tag }];
+  // Sähköpostiohjelman oma Peruuta tilaus -toiminto (myös yhden klikkauksen peruutus).
+  if (unsubscribeUrl) payload.headers = { 'List-Unsubscribe': `<${unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
 
   if (!CONFIG.resendKey) {
     fs.mkdirSync(OUTBOX_DIR, { recursive: true });
@@ -389,6 +401,12 @@ async function sendEmail({ to, subject, html, scheduledAt, idempotencyKey, tag }
     return { ok: true, dryRun: true };
   }
 
+  // Logo ja Janin kuva upotetaan viestiin (cid), jolloin ne näkyvät myös, kun sähköpostiohjelma ei lataa ulkoisia kuvia.
+  // Esikatselut (outbox) käyttävät edelleen seosales.fi:n osoitteita.
+  const inline = INLINE_IMAGES.filter(f => payload.html.includes(EMAIL.assets + f));
+  for (const f of inline) payload.html = payload.html.split(EMAIL.assets + f).join('cid:' + f.replace(/\.png$/, ''));
+  if (inline.length) payload.attachments = inline.map(f => ({ path: EMAIL.assets + f, filename: f, content_id: f.replace(/\.png$/, '') }));
+
   const r = await fetch(CONFIG.resendUrl, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${CONFIG.resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
@@ -397,6 +415,25 @@ async function sendEmail({ to, subject, html, scheduledAt, idempotencyKey, tag }
   });
   if (!r.ok) throw new Error(`Resend ${r.status}: ${(await r.text()).slice(0, 300)}`);
   return { ok: true, id: (await r.json()).id };
+}
+
+const INLINE_IMAGES = ['seo-sales-logo-tumma.png', 'jani-lammi.png'];
+
+// Peruutuslinkki: allekirjoitettu osoite ja myöhempien ajastettujen viestien tunnisteet. Näin peruutus voi
+// perua tulevat muistutukset ilman tietokantaa, eikä linkkiä voi muokata toisen osoitteen peruuttamiseksi.
+const UNSUB_SECRET = process.env.UNSUBSCRIBE_SECRET || CONFIG.resendKey || 'paikallinen-kehitys';
+const unsubSig = (email, ids) => crypto.createHmac('sha256', UNSUB_SECRET).update(`${email}|${ids}`).digest('base64url').slice(0, 32);
+function unsubscribeLink(base, email, ids) {
+  const c = ids.filter(Boolean).join(',');
+  return `${base}/api/unsubscribe?e=${Buffer.from(email).toString('base64url')}&c=${c}&s=${unsubSig(email, c)}`;
+}
+function verifyUnsubscribe(q) {
+  const email = Buffer.from(String(q.e || ''), 'base64url').toString();
+  const c = String(q.c || ''), s = String(q.s || '');
+  if (!EMAIL_RE.test(email) || !/^[a-z0-9,-]{0,200}$/i.test(c)) return null;
+  const expected = unsubSig(email, c);
+  if (s.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(s), Buffer.from(expected))) return null;
+  return { email, ids: c ? c.split(',').slice(0, 5) : [] };
 }
 
 // Tavalliset sähköpostiosoitteen merkit; esimerkiksi <, > ja rivinvaihdot hylätään.
@@ -446,36 +483,31 @@ app.post('/api/lead', async (req, res) => {
   const host = hostOf(results.url);
   const followupAt = followupTime(new Date(), CONFIG.followupDays).toISOString();
   const lateFollowupAt = results.score < CONFIG.lateFollowupBelow ? lateFollowupTime(new Date(), CONFIG.lateFollowupDays).toISOString() : null;
-  const jobs = [
-    sendEmail({
-      to: lead.email,
-      subject: `Näkyvyysanalyysi: ${host} – ${results.score}/100`,
-      html: buildReportHTML({ url: results.url, score: results.score, summary: results.summary, categories: results.categories, platform: results.platform }),
-      idempotencyKey: `report-${lead.id}`,
-      tag: 'raportti',
-    }),
-    sendEmail({
-      to: lead.email,
-      subject: `Mitä ${host}-analyysin tuloksista kannattaa tehdä ensin?`,
-      html: buildFollowupHTML({ url: results.url, score: results.score, categories: results.categories }),
-      scheduledAt: followupAt,
-      idempotencyKey: `followup-${lead.id}`,
-      tag: 'muistutus',
-    }),
-  ];
-  if (lateFollowupAt) {
-    jobs.push(sendEmail({
-      to: lead.email,
-      subject: `Miten sivuston ${host} näkyvyys on edennyt?`,
-      html: buildLateFollowupHTML({ url: results.url, score: results.score, categories: results.categories }),
-      scheduledAt: lateFollowupAt,
-      idempotencyKey: `late-followup-${lead.id}`,
-      tag: 'muistutus2',
-    }));
-  }
+  // Viestit lähetetään myöhäisimmästä alkaen: jokaisen viestin peruutuslinkki peruu sitä myöhemmät ajastetut viestit.
+  const base = `${req.protocol}://${req.get('host')}`;
+  const send = (name, opts, laterIds) => {
+    const unsubscribeUrl = unsubscribeLink(base, lead.email, laterIds);
+    return sendEmail({ ...opts, to: lead.email, unsubscribeUrl, html: opts.html(unsubscribeUrl) })
+      .catch(err => { console.error(`Lähetys ${name} epäonnistui (${lead.email}):`, err.message); return null; });
+  };
+  const late = lateFollowupAt ? await send('muistutus2', {
+    subject: `Miten sivuston ${host} näkyvyys on edennyt?`,
+    html: u => buildLateFollowupHTML({ url: results.url, score: results.score, categories: results.categories, unsubscribeUrl: u }),
+    scheduledAt: lateFollowupAt, idempotencyKey: `late-followup-${lead.id}`, tag: 'muistutus2',
+  }, []) : null;
+  const followup = await send('muistutus', {
+    subject: `Mitä ${host}-analyysin tuloksista kannattaa tehdä ensin?`,
+    html: u => buildFollowupHTML({ url: results.url, score: results.score, categories: results.categories, unsubscribeUrl: u }),
+    scheduledAt: followupAt, idempotencyKey: `followup-${lead.id}`, tag: 'muistutus',
+  }, [late?.id]);
+  const report = await send('raportti', {
+    subject: `Näkyvyysanalyysi: ${host} – ${results.score}/100`,
+    html: u => buildReportHTML({ url: results.url, score: results.score, summary: results.summary, categories: results.categories, platform: results.platform, unsubscribeUrl: u }),
+    idempotencyKey: `report-${lead.id}`, tag: 'raportti',
+  }, [followup?.id, late?.id]);
 
   if (CONFIG.formspreeId) {
-    jobs.push(fetch(`https://formspree.io/f/${CONFIG.formspreeId}`, {
+    await fetch(`https://formspree.io/f/${CONFIG.formspreeId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
@@ -490,16 +522,50 @@ app.post('/api/lead', async (req, res) => {
         aika: lead.timestamp,
       }),
       signal: AbortSignal.timeout(10000),
-    }).then(r => { if (!r.ok) throw new Error(`Formspree ${r.status}`); }));
+    }).then(r => { if (!r.ok) throw new Error(`Formspree ${r.status}`); })
+      .catch(err => console.error(`Lähetys formspree epäonnistui (${lead.email}):`, err.message));
   }
 
-  const jobNames = ['raportti', 'muistutus', ...(lateFollowupAt ? ['muistutus2'] : []), 'formspree'];
-  const outcome = await Promise.allSettled(jobs);
-  outcome.forEach((o, i) => {
-    if (o.status === 'rejected') console.error(`Lähetys ${jobNames[i]} epäonnistui (${lead.email}):`, o.reason.message);
-  });
-  res.json({ ok: true, emailSent: outcome[0].status === 'fulfilled' });
+  res.json({ ok: true, emailSent: !!report });
 });
+
+// Peruutus: GET näyttää vahvistuksen (sähköpostien linkkitarkistimet avaavat linkkejä), POST peruu.
+// POST tulee myös sähköpostiohjelman yhden klikkauksen peruutuksesta (List-Unsubscribe-Post).
+app.use('/api/unsubscribe', express.urlencoded({ extended: false, limit: '2kb' }));
+function unsubscribePage(title, body) {
+  return `<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${title} – SEO Sales</title></head>
+<body style="margin:0;background:#F5F5F7;font-family:${FONT_BODY};color:#34333C"><div style="max-width:520px;margin:60px auto;padding:36px 32px;background:#fff;border-radius:12px;line-height:1.6">
+<p style="margin:0 0 18px;font-family:${FONT_HEAD};font-weight:700;color:#17161C">SEO Sales</p>
+<h1 style="font-family:${FONT_HEAD};font-size:24px;color:#17161C;margin:0 0 12px">${title}</h1>${body}
+<p style="margin:24px 0 0;font-size:14px"><a href="https://seosales.fi" style="color:#0C847C">seosales.fi</a></p></div></body></html>`;
+}
+app.get('/api/unsubscribe', (req, res) => {
+  const v = verifyUnsubscribe(req.query);
+  if (!v) return res.status(400).send(unsubscribePage('Linkki ei ole voimassa', '<p>Jos haluat peruuttaa viestit, vastaa mihin tahansa viestiimme tai kirjoita osoitteeseen janio.lammi@gmail.com.</p>'));
+  res.send(unsubscribePage('Peruuta tilaus', `<p>Lopetetaanko viestit osoitteeseen <strong>${esc(v.email)}</strong>? Emme lähetä sen jälkeen muistutuksia emmekä uutiskirjettä.</p>
+<form method="post"><button type="submit" style="font:inherit;font-weight:600;background:#17161C;color:#fff;border:0;border-radius:8px;padding:12px 24px;cursor:pointer">Peruuta tilaus</button></form>`));
+});
+app.post('/api/unsubscribe', async (req, res) => {
+  if (rateLimited(req.ip, 'unsubscribe', 10)) return res.status(429).send(unsubscribePage('Hetki aikaa', '<p>Kokeile hetken kuluttua uudelleen.</p>'));
+  const v = verifyUnsubscribe(req.query);
+  if (!v) return res.status(400).send(unsubscribePage('Linkki ei ole voimassa', '<p>Jos haluat peruuttaa viestit, vastaa mihin tahansa viestiimme.</p>'));
+  const jobs = v.ids.map(id => CONFIG.resendKey
+    ? fetch(`${CONFIG.resendUrl}/${id}/cancel`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.resendKey}` }, signal: AbortSignal.timeout(10000) })
+        .then(r => { if (!r.ok && r.status !== 404 && r.status !== 422) throw new Error(`Resend ${r.status}`); })
+    : Promise.resolve());
+  if (CONFIG.formspreeId) {
+    jobs.push(fetch(`https://formspree.io/f/${CONFIG.formspreeId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ _subject: `Tilauksen peruutus: ${v.email}`, email: v.email, toimenpide: 'Poista uutiskirjelistalta. Ajastetut muistutukset on peruttu automaattisesti.', aika: new Date().toISOString() }),
+      signal: AbortSignal.timeout(10000),
+    }));
+  }
+  (await Promise.allSettled(jobs)).forEach(o => { if (o.status === 'rejected') console.error(`Peruutus (${v.email}):`, o.reason.message); });
+  console.log(`Tilaus peruttu: ${v.email} (${v.ids.length} ajastettua viestiä)`);
+  res.send(unsubscribePage('Tilaus peruttu', '<p>Emme lähetä sinulle enää muistutuksia emmekä uutiskirjettä. Jos muutat mielesi, olemme tavoitettavissa osoitteessa seosales.fi.</p>'));
+});
+
 
 
 // Muistutus lähtee arkipäivänä klo 9 Suomen aikaa: followupDays arkipäivää analyysin jälkeen, viikonloput ohitetaan.
@@ -535,16 +601,16 @@ function helsinkiNine(day) {
 // tavallisimpiin kysymyksiin ja kutsu keskusteluun.
 // LUONNOS: Hyvä tietää -vastaukset odottavat Janin tarkistusta.
 const FOLLOWUP_FAQ = [
+  ['Voiko korjaukset antaa asiantuntijan hoidettavaksi?',
+   'Voi, ja se on usein nopein tapa saada tuloksia. Maksuttomassa keskustelussa käymme tulokset läpi ja teemme selkeän suunnitelman: mitkä korjaukset tuovat eniten asiakkaita, missä järjestyksessä ne kannattaa tehdä ja mitkä onnistuvat omin voimin. Halutessasi hoidamme korjaukset puolestasi tai yhdessä sivuston kehittäjän kanssa.',
+   true],
   ['Kuinka nopeasti korjaukset näkyvät Googlessa?',
    'Hakutuloksen otsikkoon ja kuvaukseen tehdyt muutokset päivittyvät yleensä muutamassa päivässä tai viikossa, kun Google lukee sivun uudelleen. Sisältöön ja rakenteeseen tehtyjen muutosten vaikutus näkyy tavallisesti muutaman viikon tai kuukauden kuluessa. Google Search Consolessa voit pyytää sivun uudelleenlukemista heti korjauksen jälkeen.'],
   ['Auttavatko samat korjaukset tekoälyhauissa?',
    'Suurelta osin kyllä. ChatGPT, Claude, Gemini, Perplexity ja muut tekoälyhaut hyödyntävät samoja asioita kuin Google: selkeää sisältöä, rakenteellista dataa ja ajantasaisia yritystietoja. Kun sivu vastaa suoraan asiakkaiden kysymyksiin, se on hyvä lähde sekä hakukoneille että tekoälylle.'],
-  ['Saako korjauksiin apua?',
-   'Saa, ja se on usein nopein tapa saada tuloksia. Maksuttomassa keskustelussa käymme tulokset läpi ja teemme selkeän suunnitelman: mitkä korjaukset tuovat eniten asiakkaita, missä järjestyksessä ne kannattaa tehdä ja mitkä onnistuvat omin voimin. Halutessasi hoidamme korjaukset puolestasi tai yhdessä sivuston kehittäjän kanssa, jolloin oma aikasi jää liiketoiminnan pyörittämiseen.',
-   true],
 ];
 
-function buildFollowupHTML({ url, score, categories }) {
+function buildFollowupHTML({ url, score, categories, unsubscribeUrl }) {
   const host = hostOf(url);
   const top = prioritizedIssues(categories).issues.slice(0, 3);
 
@@ -584,7 +650,7 @@ function buildFollowupHTML({ url, score, categories }) {
 
   <tr><td style="padding:28px 40px 4px;font-size:16px;color:#34333C;line-height:1.65">
     <p style="margin:0 0 8px;font-family:${FONT_HEAD};font-size:19px;font-weight:600;color:#17161C">Tarvitsetko apua n&auml;iden kanssa?</p>
-    <p style="margin:0 0 16px">K&auml;ymme tulokset l&auml;pi maksuttomassa keskustelussa ja kerromme, mitk&auml; korjaukset tuovat teid&auml;n yritykselle eniten asiakkaita ja miss&auml; j&auml;rjestyksess&auml; ne kannattaa tehd&auml;. Voimme my&ouml;s hoitaa korjaukset puolestanne. Keskustelu ei sido mihink&auml;&auml;n.</p>
+    <p style="margin:0 0 16px">Kerro, mihin haluat keskitty&auml;, niin katsotaan yhdess&auml;, mist&auml; teid&auml;n yritykselle on eniten hy&ouml;ty&auml; juuri nyt. Keskustelu on maksuton eik&auml; sido mihink&auml;&auml;n.</p>
   </td></tr>
   <tr><td style="padding:12px 40px 0">
     <a href="${EMAIL.ctaUrl}" style="display:inline-block;background:#17161C;color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;border-radius:8px;text-decoration:none">Varaa maksuton keskustelu</a>
@@ -592,12 +658,12 @@ function buildFollowupHTML({ url, score, categories }) {
 
   ${contactBlock('Voit my&ouml;s vastata suoraan t&auml;h&auml;n viestiin tai soittaa minulle.')}
 
-  ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivulla seosales.fi. Muistutuksia l&auml;hetet&auml;&auml;n enint&auml;&auml;n kaksi, eik&auml; muita viestej&auml; l&auml;hetet&auml; ilman lupaasi.')}`);
+  ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivustollamme.', unsubscribeUrl)}`);
 }
 
 // Toinen muistutus muutaman viikon kuluttua, vain jos pisteet jäivät alle 80. Tarkoituksella
 // tekstipohjainen kuin henkilökohtainen viesti: ei pistepaneelia eikä listoja, yksi painike uuteen analyysiin.
-function buildLateFollowupHTML({ url, score, categories }) {
+function buildLateFollowupHTML({ url, score, categories, unsubscribeUrl }) {
   const host = hostOf(url);
   const top = prioritizedIssues(categories).issues.slice(0, 3).map(ch => `<strong style="color:#17161C">${esc(ch.label)}</strong>`);
   const topText = top.length > 1 ? `${top.slice(0, -1).join(', ')} ja ${top[top.length - 1]}` : top[0];
@@ -621,7 +687,7 @@ function buildLateFollowupHTML({ url, score, categories }) {
 
   ${contactBlock('Voit my&ouml;s soittaa minulle suoraan.')}
 
-  ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivulla seosales.fi. T&auml;m&auml; on viimeinen muistutus, eik&auml; muita viestej&auml; l&auml;hetet&auml; ilman lupaasi.')}`);
+  ${emailFooter('Saat t&auml;m&auml;n viestin, koska teit n&auml;kyvyysanalyysin sivustollamme.', unsubscribeUrl)}`);
 }
 
 // Esikatselut vain kehityskäyttöön: tuotannossa ne tekisivät analyysejä ilman käyttörajoitusta.
@@ -632,10 +698,10 @@ app.get(['/api/report-preview', '/api/followup-preview', '/api/late-followup-pre
   try {
     const data = await runAnalysis(testUrl);
     const html = req.path.endsWith('late-followup-preview')
-      ? buildLateFollowupHTML({ url: data.url, score: data.score, categories: data.categories })
+      ? buildLateFollowupHTML({ url: data.url, score: data.score, categories: data.categories, unsubscribeUrl: '#' })
       : req.path.endsWith('followup-preview')
-      ? buildFollowupHTML({ url: data.url, score: data.score, categories: data.categories })
-      : buildReportHTML({ url: data.url, score: data.score, summary: data.summary, categories: data.categories, platform: data.platform });
+      ? buildFollowupHTML({ url: data.url, score: data.score, categories: data.categories, unsubscribeUrl: '#' })
+      : buildReportHTML({ url: data.url, score: data.score, summary: data.summary, categories: data.categories, platform: data.platform, unsubscribeUrl: '#' });
     res.send(html);
   } catch (err) {
     res.status(500).send('Virhe: ' + err.message);
@@ -964,6 +1030,25 @@ function analyzeTechnical($, url, extra = {}) {
       const missing = [!modernOk && 'nykyaikaiset kuvaformaatit (WebP tai AVIF)', !lazyOk && 'viivästetty lataus (loading="lazy")'].filter(Boolean).join(' ja ');
       checks.push(ck('Kuvien keveys', lazyOk || modernOk ? 'warn' : 'fail', `Kuvista puuttuvat ${missing}.`, 'Tallenna kuvat WebP- tai AVIF-muodossa: ne ovat tyypillisesti selvästi kevyempiä kuin JPEG ja PNG. Lisää alempana sivulla oleville kuville loading="lazy", jolloin ne ladataan vasta, kun kävijä vierittää niiden kohdalle. Useimmissa julkaisujärjestelmissä molemmat onnistuvat lisäosalla.'));
       if (lazyOk || modernOk) score += 5;
+    }
+  }
+
+  // Kuvien ja videoiden koko: raskas media hidastaa latausta etenkin mobiilissa.
+  if (extra.mediaSizes?.length) {
+    max += 10;
+    const isVideo = u => /\.(mp4|webm|mov|m4v|ogv)(\?|$)/i.test(u);
+    const heavy = extra.mediaSizes.filter(m => m.bytes > (isVideo(m.url) ? 5 * 1024 * 1024 : 300 * 1024)).sort((a, b) => b.bytes - a.bytes);
+    const fmt = b => b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} Mt` : `${Math.round(b / 1024)} kt`;
+    const name = u => decodeURIComponent(new URL(u).pathname.split('/').pop() || u).slice(0, 60);
+    const veryHeavy = heavy.some(m => isVideo(m.url) && m.bytes > 10 * 1024 * 1024);
+    if (!heavy.length) {
+      checks.push(ck('Kuvien ja videoiden koko', 'pass', 'Sivun kuvat ja videot ovat kevyitä.'));
+      score += 10;
+    } else {
+      const list = heavy.slice(0, 3).map(m => `${name(m.url)} (${fmt(m.bytes)})`).join(', ');
+      const status = heavy.length >= 3 || veryHeavy ? 'fail' : 'warn';
+      checks.push(ck('Kuvien ja videoiden koko', status, `${heavy.length === 1 ? 'Raskas tiedosto' : `${heavy.length} raskasta tiedostoa`}: ${list}.`, 'Pienennä kuvat siihen kokoon, jossa ne näytetään, ja pakkaa ne (tavoite alle 300 kt, mieluiten WebP- tai AVIF-muodossa). Lyhennä ja pakkaa taustavideot (tavoite alle 5 Mt) tai näytä mobiilissa kuva videon sijaan. Raskas media hidastaa sivun latautumista erityisesti mobiiliyhteyksillä.'));
+      if (status === 'warn') score += 5;
     }
   }
 

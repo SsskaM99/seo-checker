@@ -270,9 +270,13 @@ header.stuck .logo img{height:25px}
 /* Esikatselu ja kortti samassa ruudukon solussa: alue kasvaa kortin mittaiseksi, jos kortti on korkeampi. */
 .gate-wrapper{position:relative;overflow:hidden;display:grid}
 .blurred-preview,.gate-overlay{grid-area:1/1}
-.blurred-preview{position:relative;align-self:start;filter:blur(6px);opacity:.55;pointer-events:none;padding:0 0 32px;user-select:none;max-height:480px;overflow:hidden}
+/* Raportin alku terävänä (noin 260 px), sitten sumeaksi; kortti alkaa siitä, mihin terävä osa loppuu */
+.blurred-preview{position:relative;align-self:start;display:grid;pointer-events:none;user-select:none;max-height:980px;overflow:hidden;padding-top:12px}
+.preview-sharp,.preview-blur{grid-area:1/1}
+.preview-sharp{-webkit-mask-image:linear-gradient(#000 0,#000 230px,transparent 330px);mask-image:linear-gradient(#000 0,#000 230px,transparent 330px)}
+.preview-blur{filter:blur(5px);opacity:.6;-webkit-mask-image:linear-gradient(transparent 0,transparent 210px,#000 340px);mask-image:linear-gradient(transparent 0,transparent 210px,#000 340px)}
 .blurred-preview::after{content:"";position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(transparent,var(--bg))}
-.gate-overlay{display:flex;align-items:center;justify-content:center;padding:24px 0;z-index:5}
+.gate-overlay{display:flex;align-items:flex-start;justify-content:center;padding:300px 0 24px;z-index:5}
 .gate-card{background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r-lg);padding:40px 36px;max-width:460px;width:90%;text-align:center;box-shadow:0 24px 60px -20px rgba(23,22,28,.12)}
 .gate-card h2{font-size:22px;margin-bottom:6px}
 .gate-card h2 em{color:var(--turq-dark);font-style:normal}
@@ -572,7 +576,7 @@ const CATS = {
   technical: {
     label: 'Tekniikka',
     question: 'Toimiiko sivusto nopeasti ja luotettavasti kaikilla laitteilla?',
-    info: 'Tarkistamme suojatun yhteyden ja sen ohjauksen, mobiilinäkymän, kieliasetuksen, indeksointiluvan, palvelimen vasteajan, pakkauksen, sivun koon, latautumista estävät skriptit, kuvien mitat ja keveyden, robots.txt-tiedoston ja sivukartan.',
+    info: 'Tarkistamme suojatun yhteyden ja sen ohjauksen, mobiilinäkymän, kieliasetuksen, indeksointiluvan, palvelimen vasteajan, pakkauksen, sivun koon, latautumista estävät skriptit, kuvien mitat ja keveyden, kuvien ja videoiden koon, robots.txt-tiedoston ja sivukartan.',
     why: 'Tekniset puutteet voivat estää hyvänkin sisällön näkymisen ja karkottaa kävijän ennen kuin sivu latautuu.'
   },
   content: {
@@ -1040,29 +1044,18 @@ if (startUrl) {
   $('check-form').requestSubmit();
 }
 
+// Esikatselu kuin verkkolehden maksumuuri: raportin alku näkyy terävänä, sitten sisältö liukuu sumeaksi.
 function buildBlurredPreview(data) {
-  const wrap = $('blurred-preview');
-  let html = '<div class="wrap">';
-  data.categories.forEach(c => {
-    html += '<div style="margin-bottom:24px"><h3 style="font-size:16px;padding:12px 0 8px;border-bottom:1.5px solid var(--line)">' + esc(c.label) + ' — ' + c.score + '/100</h3><ul style="list-style:none">';
-    c.checks.forEach(ch => {
-      html += '<li style="padding:12px 0;border-bottom:1px solid var(--line)"><strong>' + esc(ch.label) + '</strong><br>' + esc(ch.message) + '</li>';
-    });
-    html += '</ul></div>';
-  });
-  html += '</div>';
-  wrap.innerHTML = html;
+  // Heikoin osa-alue ensin, jolloin terävänä näkyy konkreettinen kehityskohde korjausohjeineen.
+  const worstFirst = { ...data, categories: [...data.categories].sort((a, b) => a.score - b.score) };
+  const body = '<div class="wrap"><div class="results-title"><p>Täysi raportti</p><h2>Tulokset osa-alueittain</h2></div>' + reportSectionsHtml(worstFirst) + '</div>';
+  $('blurred-preview').innerHTML = '<div class="preview-sharp">' + body + '</div><div class="preview-blur">' + body + '</div>';
 }
 
-function renderFullResults(data, sentTo) {
-  const wrap = $('full-results-content');
-  let html = (sentTo
-    ? '<p class="sent-note"><strong>Raportti on matkalla osoitteeseen ' + esc(sentTo) + '.</strong> Täydet tulokset näette myös alla.</p>'
-    : '<p class="sent-note">Raportin lähetys sähköpostiin ei onnistunut juuri nyt. Täydet tulokset näette alla.</p>') +
-    '<div class="results-title"><p>Täysi raportti</p><h2>Tulokset osa-alueittain</h2></div>';
-
+// Täyden raportin osa-alueet: sama sisältö tulossivulla ja lomakkeen takana näkyvässä esikatselussa.
+function reportSectionsHtml(data) {
+  let html = '';
   data.categories.forEach((c, i) => {
-    const col = scoreColor(c.score);
     html += '<div class="cat-section">' +
       '<div class="cat-section-header">' +
         '<span class="cat-num">' + String(i + 1).padStart(2, '0') + '</span>' +
@@ -1092,6 +1085,18 @@ function renderFullResults(data, sentTo) {
     });
     html += '</ul></div>';
   });
+
+  return html;
+}
+
+function renderFullResults(data, sentTo) {
+  const wrap = $('full-results-content');
+  let html = (sentTo
+    ? '<p class="sent-note"><strong>Raportti on matkalla osoitteeseen ' + esc(sentTo) + '.</strong> Täydet tulokset näette myös alla.</p>'
+    : '<p class="sent-note">Raportin lähetys sähköpostiin ei onnistunut juuri nyt. Täydet tulokset näette alla.</p>') +
+    '<div class="results-title"><p>Täysi raportti</p><h2>Tulokset osa-alueittain</h2></div>';
+
+  html += reportSectionsHtml(data);
 
   wrap.innerHTML = html;
   show('results-full');

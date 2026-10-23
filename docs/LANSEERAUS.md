@@ -71,6 +71,7 @@ Päivitetty 7.10.2026.
 | `ALLOWED_ORIGINS` | – | Oletus `https://seosales.fi,https://www.seosales.fi` |
 | `FOLLOWUP_DAYS` | – | Muistutuksen viive arkipäivinä, oletus 3 |
 | `LATE_FOLLOWUP_DAYS` | – | Toisen muistutuksen viive kalenteripäivinä (viikonloppu → maanantai), oletus 21, enintään noin 28 |
+| `UNSUBSCRIBE_SECRET` | suositus | Peruutuslinkkien allekirjoitusavain. Jos puuttuu, käytetään Resend-avainta (avaimen vaihto mitätöi vanhat peruutuslinkit) |
 | `LATE_FOLLOWUP_BELOW` | – | Toinen muistutus lähtee, jos pisteet ovat tätä pienemmät, oletus 80 |
 | `RATE_MAX` | – | Analyysejä per IP 10 minuutissa, oletus 20 |
 | `DATA_DIR` | – | Liidien ja lokien kansio, oletus sovelluksen kansio |

@@ -16,14 +16,17 @@ const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'seo-checker-test-'));
 const PREVIEW_DIR = path.join(ROOT, 'outbox', 'test');
 
 const received = [];
-let failNext = false;
+const cancelled = [];
+let failTag = null;
 const mock = http.createServer((req, res) => {
   let body = '';
   req.on('data', c => body += c).on('end', () => {
     if (req.url.startsWith('/formspree')) { res.end('{}'); return; }
+    const cancel = /^\/emails\/([^/]+)\/cancel$/.exec(req.url);
+    if (cancel) { cancelled.push(cancel[1]); res.end(JSON.stringify({ object: 'email', id: cancel[1] })); return; }
     const payload = JSON.parse(body);
     received.push({ payload, headers: req.headers });
-    if (failNext) { failNext = false; res.writeHead(500); res.end('{"message":"testivirhe"}'); return; }
+    if (failTag && payload.tags?.[0]?.value === failTag) { failTag = null; res.writeHead(500); res.end('{"message":"testivirhe"}'); return; }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ id: `test-${received.length}` }));
   });
@@ -79,7 +82,9 @@ try {
   const j3 = await r3.json();
   check('vastaus ok ja raportti lähetetty', r3.ok && j3.emailSent === true, JSON.stringify(j3));
   check('kolme viestiä Resendille', received.length === 3, `saatiin ${received.length}`);
-  const [report, followup, late] = received.map(x => x.payload);
+  // Lähetysjärjestys: toinen muistutus, muistutus, raportti (peruutuslinkit viittaavat myöhempiin viesteihin).
+  const byTag = t => received.find(x => x.payload.tags?.[0]?.value === t)?.payload;
+  const [report, followup, late] = [byTag('raportti'), byTag('muistutus'), byTag('muistutus2')];
   const now = Date.now();
   check('raportti: vastaanottaja siistitty', report?.to === 'testi@esimerkki.fi', report?.to);
   check('raportti: lähettäjä ja vastausosoite', report?.from === 'SEO Sales <raportti@seosales.fi>' && report?.reply_to === 'jani@seosales.fi');
@@ -102,6 +107,23 @@ try {
   check('toinen muistutus: aihe ja pisteet', /^Miten sivuston seosales\.fi näkyvyys on edennyt\?$/.test(late?.subject || '') && late?.html.includes(`${check1.score}/100`), late?.subject);
   check('toinen muistutus ei sisällä selaimen syöttämää tekstiä', !late?.html.includes('HUIJAUS'));
   check('idempotenssiavaimet asetettu', received.every(x => /^(report|followup|late-followup)-/.test(x.headers['idempotency-key'] || '')));
+  check('kuvat upotettu viestiin (cid)', report?.html.includes('cid:jani-lammi') && !report?.html.includes('seosales.fi/email/') && report?.attachments?.some(a => a.content_id === 'jani-lammi' && a.path === 'https://seosales.fi/email/jani-lammi.png'));
+  check('alatunnisteessa ei lupausta muista viesteistä', ![report, followup, late].some(m => /ainoa muistutus|viimeinen muistutus|ilman lupaasi/.test(m?.html || '')));
+  check('jokaisessa viestissä peruutuslinkki ja List-Unsubscribe', [report, followup, late].every(m => m?.html.includes('/api/unsubscribe?') && /^<http:\/\/127\.0\.0\.1:\d+\/api\/unsubscribe\?/.test(m?.headers?.['List-Unsubscribe'] || '') && m?.headers?.['List-Unsubscribe-Post'] === 'List-Unsubscribe=One-Click'));
+  const unsubOf = m => m.headers['List-Unsubscribe'].slice(1, -1);
+  const reportUnsub = unsubOf(report);
+  check('raportin peruutus kattaa molemmat muistutukset', new URL(reportUnsub).searchParams.get('c') === 'test-2,test-1', reportUnsub);
+  check('muistutuksen peruutus kattaa toisen muistutuksen', new URL(unsubOf(followup)).searchParams.get('c') === 'test-1');
+
+  console.log('3a. Tilauksen peruutus');
+  const page = await fetch(reportUnsub);
+  check('linkin avaus näyttää vahvistuksen eikä peru vielä', page.ok && (await page.text()).includes('Peruuta tilaus') && cancelled.length === 0);
+  const forged = new URL(reportUnsub); forged.searchParams.set('e', Buffer.from('joku@muu.fi').toString('base64url'));
+  check('muokattu linkki hylätään', (await fetch(forged, { method: 'POST' })).status === 400 && cancelled.length === 0);
+  const done = await fetch(reportUnsub, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'List-Unsubscribe=One-Click' });
+  check('peruutus perii ajastetut muistutukset', done.ok && (await done.text()).includes('Tilaus peruttu') && cancelled.join() === 'test-2,test-1', cancelled.join());
+  check('peruutus kirjataan lokiin', /Tilaus peruttu: testi@esimerkki\.fi/.test(appLog));
+
   const leads = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'leads.json'), 'utf8'));
   check('yritysosoite liitetään uutiskirjeeseen', leads.length === 1 && leads[0].newsletter === 'yritysosoite' && leads[0].score === check1.score, JSON.stringify(leads[0]?.newsletter));
 
@@ -123,7 +145,7 @@ try {
   check('analyysi ajetaan uudelleen ja viestit lähtevät', r4.ok && received.length === 3, `status ${r4.status}, viestejä ${received.length}`);
 
   console.log('5. Resend-virhe');
-  failNext = true;
+  failTag = 'raportti';
   const r5 = await post('/api/lead', { email: 'kolmas@esimerkki.fi', analysisId: check1.analysisId });
   const j5 = await r5.json();
   check('käyttäjä saa silti raportin (ok, emailSent false)', r5.ok && j5.emailSent === false, JSON.stringify(j5));

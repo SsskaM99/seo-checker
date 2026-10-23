@@ -340,6 +340,28 @@ async function checkHttpRedirect(finalUrl) {
   } catch { return null; }
 }
 
+// Kuvien ja videoiden koot: HEAD-pyyntö, ja jos koko puuttuu, yhden tavun Range-pyyntö.
+// Palauttaa [{ url, bytes }] niille, joiden koko saatiin selville.
+async function fetchMediaSizes(urls) {
+  const sizeOf = async url => {
+    try {
+      const u = new URL(url);
+      if (!['http:', 'https:'].includes(u.protocol)) return null;
+      await assertPublicHost(u.hostname);
+      const opts = { headers: { 'User-Agent': UA_BROWSER }, signal: AbortSignal.timeout(5000), dispatcher };
+      let res = await fetch(u, { ...opts, method: 'HEAD' });
+      let bytes = res.ok ? Number(res.headers.get('content-length')) || 0 : 0;
+      if (!bytes) {
+        res = await fetch(u, { ...opts, headers: { ...opts.headers, Range: 'bytes=0-0' } });
+        res.body?.cancel().catch(() => {});
+        bytes = Number((res.headers.get('content-range') || '').split('/')[1]) || 0;
+      }
+      return bytes ? { url: u.href, bytes } : null;
+    } catch { return null; }
+  };
+  return (await Promise.all(urls.map(sizeOf))).filter(Boolean);
+}
+
 async function fetchSiteFiles(finalUrl) {
   const origin = new URL(finalUrl).origin;
   const [robotsRes, llmsRes, httpsRedirect] = await Promise.all([
@@ -365,4 +387,4 @@ async function fetchSiteFiles(finalUrl) {
   return { robotsOk: robotsValid, robots, sitemapOk, llmsOk, httpsRedirect };
 }
 
-module.exports = { fetchPage, fetchSiteFiles, FetchError, AI_BOTS, parseRobots, isPrivateIp, safeLookup };
+module.exports = { fetchPage, fetchSiteFiles, fetchMediaSizes, FetchError, AI_BOTS, parseRobots, isPrivateIp, safeLookup };
